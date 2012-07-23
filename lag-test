@@ -2,6 +2,12 @@
 import serial
 import os, sys
 
+def uint32(b0,b1,b2,b3):
+    return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0
+
+def uint16(b0,b1):
+    return (b1 << 8) + b0
+
 class MyApp:
     def __init__(self):
         port = os.environ.get('LAG_TEST_PORT', '/dev/ttyACM0' )
@@ -15,19 +21,36 @@ class MyApp:
         buf = ''
         while 1:
             buf += self.ser.read()
-            if len(buf):
+            while len(buf) > 9:
                 buf = self._h(buf)
-
-                #sys.stdout.write(buf)
-                #sys.stdout.flush()
 
     def _h(self,buf):
         result = buf
-        if len(buf) > 100:
-            lines = buf.split('H')
-            result = lines.pop()
-            for line in lines:
-                print '%d: %r'%(len(line), line)
+        if len(buf) >= 9:
+            valid = False
+            #print repr(buf)
+
+            if buf[0] == 'H':
+                bytes = [ord(char) for char in buf[1:9]]
+                adc = bytes[0]
+                e0,e1,e2,e3 = bytes[1:5]
+                t0,t1 = bytes[5:7]
+                expected_chksum = bytes[7]
+                actual_chksum = sum( bytes[:7] ) % 256
+                #print bytes
+
+                if actual_chksum == expected_chksum:
+                    valid = True
+                    print '%d,%d,%d'%(adc, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+
+            if valid:
+                #print 'valid'
+                result = buf[9:]
+
+            if not valid:
+                #print 'not valid'
+                result = buf[1:] # ignore this potential start and do a frame-shift
+
         return result
 
 if __name__=='__main__':
