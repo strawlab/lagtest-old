@@ -1,6 +1,4 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4 -*- */
-#include <Arduino.h>
-
 #define analogPin 3
 #define LEDPin 13
 
@@ -9,11 +7,13 @@
 volatile epoch_dtype epoch=0;
 volatile uint8_t ADCvalue;    // Global variable, set to volatile if used with ISR
 
-typedef struct _sample_t {
+typedef struct sample_t sample_t;
+
+struct sample_t {
     uint8_t adc;
     epoch_dtype epoch;
     uint16_t ticks;
-} sample_t;
+};
 
 volatile sample_t current_sample;
 
@@ -75,7 +75,7 @@ void setup() {
     setup_adc();
 }
 
-static inline void send_data(const struct _sample_t samp) {
+static inline void send_data(const sample_t samp) {
     const char * buf;
     Serial.write("H");
     buf = (const char*)&(samp);
