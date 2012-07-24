@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import pygame
 import serial
 import os, sys, time, collections
 
@@ -14,6 +15,8 @@ else:
     time_func = time.time
 
 QUERY_DT = 1.0 # n seconds between clock info requests
+DRAW_DT = 1.0/60.0 # 60 fps
+SWITCH_DT = 1.0
 
 class MyApp:
     def __init__(self):
@@ -27,8 +30,39 @@ class MyApp:
         self._qi = 0
         self._queries = collections.OrderedDict()
 
+        self._last_adc = 0
+        self._last_draw = 0.0
+
+        self._last_switch = 0.0
+        self.current_color = (255,255,255)
+
+        pygame.display.init()
+        pygame.font.init()
+        self.screen = pygame.display.set_mode( (320,240) )
+        #self.font = pygame.font.Font(None, 100)
+        #self.font = pygame.font.match_font('Arial')
+        self.font = pygame.font.SysFont("Arial",18)
+
+        self.clear_data()
+
+    def clear_data(self):
+        print 'cleared data'
+        self.switches = []
+        self.times = []
+        self.adcs = []
+
+    def save_to_disk(self):
+        for table in ['switches', 'times', 'adcs']:
+            fname = table+'.csv'
+            data = getattr(self,table)
+            with open(fname,mode='w') as fd:
+                for row in data:
+                    fd.write( ','.join( map(repr,row) ) + '\n' )
+
     def run(self):
         buf = ''
+        black = (0,0,0)
+        white = (255,255,255)
         while 1:
             buf += self.ser.read()
             #print '                               %d: %r'%(len(buf),buf)
@@ -46,12 +80,52 @@ class MyApp:
 
                 self._qi = (self._qi + 1) % 256
                 self.last_time = now
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_c:
+                        self.clear_data()
+                        print 'cleared'
+                    elif event.key == pygame.K_s:
+                        self.save_to_disk()
+                        print 'saved'
+
+            switch = False
+            if (now - self._last_switch) > SWITCH_DT:
+                switch = True
+                self._last_switch = now
+                if self.current_color[0]==0:
+                    self.current_color = white
+                else:
+                    self.current_color = black
+
+            # throttle drawing
+            if (now - self._last_draw) >= DRAW_DT or switch:
+
+                self.screen.fill(black)
+                self.screen.fill( self.current_color,
+                                  pygame.Rect(25,25,200,200))
+
+                adc = self.get_last_adc()
+                surf = self.font.render("luminance: %d" % adc, True, white)
+                self.screen.blit( surf, (5,5) )
+                pygame.display.flip()
+                if switch:
+                    flip_time = time_func()
+                    self.switches.append( (flip_time, self.current_color[0]/255 ) )
+
+                self._last_draw = now
+
+    def get_last_adc(self):
+        return self._last_adc
 
     def _handle_returned_timestamp(self, qi, epoch, counter):
         now = time_func()
 
         while len(self._queries) > 50:
             old_qi = self._queries.popitem(last=False)
+            print 'old_qi',old_qi
             print 'WARNING: never got return for query %d'%old_qi
 
         try:
@@ -67,6 +141,9 @@ class MyApp:
 
         ino_time_estimate = (now+send_timestamp)*0.5
         ino_stamp = epoch*2**16 + counter
+
+        self.times.append( (ino_time_estimate, ino_stamp) )
+
 
     def _h(self,buf):
         result = buf
@@ -88,12 +165,17 @@ class MyApp:
                     valid = True
                 # if packet_type != 'H':
                 #     print '%s: %d,%d,%d'%(packet_type, value, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+                epoch = uint32(e0,e1,e2,e3)
+                count = uint16(t0,t1)
 
-                # if packet_type == 'H':
-                #     print '                                                     %d'%value
+                if packet_type == 'H':
+                    self._last_adc = value
+                    self.adcs.append( (epoch*2**16+count, value) )
+
+                    #print '                                                     %d'%value
 
                 if packet_type == 'P':
-                    self._handle_returned_timestamp(value, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+                    self._handle_returned_timestamp(value, epoch, count )
 
             if valid:
                 #print 'valid'
