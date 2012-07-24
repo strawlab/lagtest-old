@@ -6,12 +6,10 @@
 
 typedef uint32_t epoch_dtype;
 
-typedef struct sample_t sample_t;
-
-struct sample_t {
+typedef struct {
     uint8_t adc;
     epoch_dtype epoch;
     uint16_t ticks;
-};
+} sample_t;
 
 #endif
