@@ -10,7 +10,7 @@ def uint16(b0,b1):
 
 class MyApp:
     def __init__(self):
-        port = os.environ.get('LAG_TEST_PORT', '/dev/ttyACM0' )
+        port = os.environ.get('LAG_TEST_PORT', '/dev/ttyUSB0' )
         self.ser = serial.Serial(port=port,
                                  timeout=0.1,
                                  baudrate=115200,
