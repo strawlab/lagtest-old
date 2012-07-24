@@ -1,19 +1,10 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4 -*- */
+#include "lagtest_datatypes.h"
 #define analogPin 3
 #define LEDPin 13
 
-#define epoch_dtype uint32_t
-
 volatile epoch_dtype epoch=0;
 volatile uint8_t ADCvalue;    // Global variable, set to volatile if used with ISR
-
-typedef struct sample_t sample_t;
-
-struct sample_t {
-    uint8_t adc;
-    epoch_dtype epoch;
-    uint16_t ticks;
-};
 
 volatile sample_t current_sample;
 
