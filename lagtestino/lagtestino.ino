@@ -1,7 +1,6 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4 -*- */
 #include "lagtest_datatypes.h"
 #define analogPin 3
-#define LEDPin 13
 
 volatile epoch_dtype epoch=0;
 volatile uint8_t ADCvalue;    // Global variable, set to volatile if used with ISR
@@ -10,9 +9,6 @@ volatile sample_t current_sample;
 
 ISR(ADC_vect)
 {
-    //ADCvalue = ADCH;          // only need to read the high value for 8 bit
-    digitalWrite(LEDPin, 1);
-
     current_sample.adc = ADCH;
     current_sample.epoch = epoch;
     current_sample.ticks = TCNT1;
@@ -21,8 +17,6 @@ ISR(ADC_vect)
 ISR(TIMER1_OVF_vect)
 {
     epoch++;
-
-    digitalWrite(LEDPin, 0);
 
 }
 
@@ -55,9 +49,6 @@ void setup_adc() {
 }
 
 void setup() {
-
-    pinMode(LEDPin, OUTPUT);
-    digitalWrite(LEDPin, 0);
 
     // start serial port at 115200 bps:
     Serial.begin(115200);
