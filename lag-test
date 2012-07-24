@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import serial
-import os, sys
+import os, sys, time, collections
 
 def uint32(b0,b1,b2,b3):
     return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0
@@ -8,21 +8,65 @@ def uint32(b0,b1,b2,b3):
 def uint16(b0,b1):
     return (b1 << 8) + b0
 
+if sys.platform.startswith('win'):
+    time_func = time.clock
+else:
+    time_func = time.time
+
+QUERY_DT = 1.0 # n seconds between clock info requests
+
 class MyApp:
     def __init__(self):
         port = os.environ.get('LAG_TEST_PORT', '/dev/ttyUSB0' )
         self.ser = serial.Serial(port=port,
-                                 timeout=0.1,
+                                 timeout=0.01,
                                  baudrate=115200,
                                  )
         self.ser.open()
+        self.last_time = time_func() + 0.5 # give half a second to flush buffers
+        self._qi = 0
+        self._queries = collections.OrderedDict()
 
     def run(self):
         buf = ''
         while 1:
             buf += self.ser.read()
-            while len(buf) > 9:
+            #print '                               %d: %r'%(len(buf),buf)
+            while len(buf) >= 9:
                 buf = self._h(buf)
+
+            now = time_func()
+            if (now - self.last_time) > QUERY_DT:
+                # request sample
+
+                self._queries[ self._qi ] = now
+
+                #print 'timestamp query', self._qi
+                self.ser.write( 'P'+chr(self._qi) )
+
+                self._qi = (self._qi + 1) % 256
+                self.last_time = now
+
+    def _handle_returned_timestamp(self, qi, epoch, counter):
+        now = time_func()
+
+        while len(self._queries) > 50:
+            old_qi = self._queries.popitem(last=False)
+            print 'WARNING: never got return for query %d'%old_qi
+
+        try:
+            send_timestamp = self._queries.pop( qi )
+        except KeyError:
+            print 'WARNING: could not find original data for query %d'%qi
+            return
+
+        max_error = now-send_timestamp
+        if max_error > 0.015: # 15 msec cutoff
+            print 'WARNING: clock sample took %.1f msec. Ignoring value.'%( max_error*1e3 )
+            return
+
+        ino_time_estimate = (now+send_timestamp)*0.5
+        ino_stamp = epoch*2**16 + counter
 
     def _h(self,buf):
         result = buf
@@ -30,9 +74,10 @@ class MyApp:
             valid = False
             #print repr(buf)
 
-            if buf[0] == 'H':
+            if buf[0] in ('H','P'):
+                packet_type = buf[0]
                 bytes = [ord(char) for char in buf[1:9]]
-                adc = bytes[0]
+                value = bytes[0]
                 e0,e1,e2,e3 = bytes[1:5]
                 t0,t1 = bytes[5:7]
                 expected_chksum = bytes[7]
@@ -41,14 +86,21 @@ class MyApp:
 
                 if actual_chksum == expected_chksum:
                     valid = True
-                    print '%d,%d,%d'%(adc, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+                # if packet_type != 'H':
+                #     print '%s: %d,%d,%d'%(packet_type, value, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+
+                # if packet_type == 'H':
+                #     print '                                                     %d'%value
+
+                if packet_type == 'P':
+                    self._handle_returned_timestamp(value, uint32(e0,e1,e2,e3), uint16(t0,t1) )
 
             if valid:
                 #print 'valid'
                 result = buf[9:]
 
             if not valid:
-                #print 'not valid'
+                print 'not valid'
                 result = buf[1:] # ignore this potential start and do a frame-shift
 
         return result

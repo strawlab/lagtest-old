@@ -7,9 +7,9 @@
 typedef uint32_t epoch_dtype;
 
 typedef struct {
-    uint8_t adc;
+    uint8_t value;
     epoch_dtype epoch;
     uint16_t ticks;
-} sample_t;
+} timed_sample_t;
 
 #endif
