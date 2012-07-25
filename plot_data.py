@@ -17,7 +17,6 @@ def persist( xo, yo ):
         x.append( xi1 ); y.append(yi)
     return np.array(x), np.array(y)
 
-
 if 1:
     data = {}
     for (table,cols) in [
@@ -47,11 +46,11 @@ if 1:
     if 1:
         w=np.hanning(n_samps)
         y = np.convolve(w/w.sum(),y,mode='same')
-    ax2.plot( (t-t0)*1000.0, 
+    ax2.plot( (t-t0)*1000.0,
               #data['adcs']['adc'],
               y,
               'g-' )
-    ax2.plot( (t-t0)*1000.0, 
+    ax2.plot( (t-t0)*1000.0,
               data['adcs']['adc'],
               'b.' )
     ax2.set_xlabel('time (msec)')
