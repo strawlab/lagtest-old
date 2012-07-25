@@ -29,7 +29,8 @@ if 1:
         data[table] = rec
 
     time_model = get_time_model(data['times']['time_ino'],
-                                data['times']['time_host'])
+                                data['times']['time_host'],
+                                max_residual=1e-4)
     fig = plt.figure()
 
     ax1=fig.add_subplot(2,1,1)
@@ -43,13 +44,13 @@ if 1:
     smooth_len_sec = 0.02
     n_samps = int(round(smooth_len_sec/adc_dt))
     y = data['adcs']['adc']
-    if 1:
+    if 0:
         w=np.hanning(n_samps)
         y = np.convolve(w/w.sum(),y,mode='same')
-    ax2.plot( (t-t0)*1000.0,
-              #data['adcs']['adc'],
-              y,
-              'g-' )
+        ax2.plot( (t-t0)*1000.0,
+                  #data['adcs']['adc'],
+                  y,
+                  'g-' )
     ax2.plot( (t-t0)*1000.0,
               data['adcs']['adc'],
               'b.' )
