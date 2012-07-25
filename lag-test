@@ -166,7 +166,7 @@ class MyApp:
         self.times.append( (ino_time_estimate, ino_stamp) )
         if len(self.times) > 3:
             # require 3 samples to start attempting to fit model
-            tdata = np.array(self.times)
+            tdata = np.array(self.times[-100:])
             try:
                 self.time_model = get_time_model(tdata[:,1], tdata[:,0])
             except TimeFitError, err:
