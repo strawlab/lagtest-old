@@ -31,7 +31,7 @@ clock.
 #define LEDPin 13
 
 // Global variables for ADC ----------------------------------------------------
-const uint8_t log2_n_samples = 6;
+const uint8_t log2_n_samples = 4;
 const uint8_t max_n_samples = 0x01 << log2_n_samples;
 volatile uint8_t n_samples=0;
 volatile uint16_t accum=0;
