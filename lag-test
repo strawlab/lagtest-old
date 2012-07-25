@@ -50,6 +50,10 @@ class MyApp:
         self._qi = 0
         self._queries = collections.OrderedDict()
 
+        self._vquery_time = time_func()+0.5
+        self._version_check_started = False
+        self._version_check_done = False
+
         self._last_adc = 0
         self._last_draw = 0.0
 
@@ -138,8 +142,24 @@ class MyApp:
 
                 self._last_draw = now
 
+            # version check
+            if not self._version_check_done:
+                if not self._version_check_started:
+                    if now >= self._vquery_time:
+                        self.ser.write( 'V?' )
+                        self._version_check_started = True
+                        print 'made version request'
+
+                if (now - self._vquery_time) > 0.5:
+                    raise RuntimeError('no response to version query')
+
     def get_last_adc(self):
         return self._last_adc
+
+    def _handle_version(self, value, epoch, count):
+        assert value==1
+        self._vquery_time = time_func()
+        self._version_check_done = True
 
     def _handle_returned_timestamp(self, qi, epoch, counter):
         now = time_func()
@@ -178,7 +198,7 @@ class MyApp:
             valid = False
             #print repr(buf)
 
-            if buf[0] in ('H','P'):
+            if buf[0] in ('H','P','V'):
                 packet_type = buf[0]
                 bytes = [ord(char) for char in buf[1:9]]
                 value = bytes[0]
@@ -208,6 +228,9 @@ class MyApp:
 
                 if packet_type == 'P':
                     self._handle_returned_timestamp(value, epoch, count )
+
+                if packet_type == 'V':
+                    self._handle_version(value, epoch, count )
 
             if valid:
                 #print 'valid'

@@ -150,7 +150,6 @@ void loop() {
 
         cmd = Serial.read();
         value = Serial.read();
-        digitalWrite(LEDPin, 1);
 
         if (cmd=='P') {
 
@@ -166,6 +165,20 @@ void loop() {
 
             SREG = SaveSREG_; // restore interrupt flags
             send_data(timestamp_request,'P');
+        } else if (cmd=='V') {
+
+            static timed_sample_t version_request;
+
+            version_request.value = 1;
+
+            uint8_t SaveSREG_ = SREG;   // save interrupt flag
+            cli(); // disable interrupts
+
+                version_request.epoch = epoch;
+                version_request.ticks = TCNT1;
+
+            SREG = SaveSREG_; // restore interrupt flags
+            send_data(version_request,'V');
         }
 
     }
