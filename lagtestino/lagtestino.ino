@@ -3,16 +3,37 @@
 #define analogPin 0
 #define LEDPin 13
 
-volatile epoch_dtype epoch=0;
-volatile uint8_t ADCvalue;    // Global variable, set to volatile if used with ISR
-
+// Global variables for ADC ----------------------------------------------------
+const uint8_t log2_n_samples = 6;
+const uint8_t max_n_samples = 0x01 << log2_n_samples;
+volatile uint8_t n_samples=0;
+volatile uint16_t accum=0;
 volatile timed_sample_t adc_sample;
+volatile uint8_t new_adc_sample=0;
 
+// Global variable for clock measurement ---------------------------------------
+volatile epoch_dtype epoch=0;
+
+// Interrupt service routine for new analog sample ready -----------------------
 ISR(ADC_vect)
 {
-    adc_sample.value = ADCH;
-    adc_sample.epoch = epoch;
-    adc_sample.ticks = TCNT1;
+
+    accum += ADCH;
+    n_samples++;
+
+    if (n_samples >= max_n_samples) {
+        adc_sample.value = 0x0FF & (accum >> log2_n_samples);
+
+        // stamp data with current timestamp
+        adc_sample.epoch = epoch;
+        adc_sample.ticks = TCNT1;
+
+        accum = 0;
+        n_samples = 0;
+
+        new_adc_sample=1;
+    }
+
 }
 
 ISR(TIMER1_OVF_vect)
@@ -39,7 +60,6 @@ void setup_adc() {
     ADMUX |= (1 << REFS0);    // use AVcc as the reference
     ADMUX |= (1 << ADLAR);    // Right adjust for 8 bit resolution
 
-    ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // 128 prescale for 8Mhz
     ADCSRA |= (1 << ADATE);    // Set free running mode
     ADCSRA |= (1 << ADEN);    // Enable the ADC
     ADCSRA |= (1 << ADIE);    // Enable Interrupts
@@ -73,19 +93,24 @@ static inline void send_data(const timed_sample_t samp, const char header) {
     Serial.write(chksum);
 }
 
+// Standard Arduino loop function. This gets repeatedly called at high rate ----
 void loop() {
     static timed_sample_t adc_copy;
 
-    uint8_t SaveSREG = SREG;   // save interrupt flag
-    cli(); // disable interrupts
+    if (new_adc_sample) {
 
-        adc_copy.value = adc_sample.value;
-        adc_copy.epoch = adc_sample.epoch;
-        adc_copy.ticks = adc_sample.ticks;
+        uint8_t SaveSREG = SREG;   // save interrupt flag
+        cli(); // disable interrupts
 
-    SREG = SaveSREG; // restore interrupt flags
+            adc_copy.value = adc_sample.value;
+            adc_copy.epoch = adc_sample.epoch;
+            adc_copy.ticks = adc_sample.ticks;
+            new_adc_sample = 0;
 
-    send_data(adc_copy,'H');
+        SREG = SaveSREG; // restore interrupt flags
+
+        send_data(adc_copy,'H');
+    }
 
     if (Serial.available() >= 2) {
         static char cmd;
