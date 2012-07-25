@@ -135,10 +135,16 @@ class MyApp:
                 adc = self.get_last_adc()
                 surf = self.font.render("luminance: %d" % adc, True, white)
                 self.screen.blit( surf, (5,5) )
-                pygame.display.flip()
                 if switch:
+
+                    # Record the time immediately prior to the call to
+                    # flip(). While we could record it afterward, that
+                    # doesn't measure total system latency() from when
+                    # done drawing to the display on the screen.
+
                     flip_time = time_func()
                     self.switches.append( (flip_time, self.current_color[0]/255 ) )
+                pygame.display.flip()
 
                 self._last_draw = now
 
