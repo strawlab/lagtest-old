@@ -1,5 +1,32 @@
-/* -*- Mode: C; tab-width: 4; c-basic-offset: 4 -*- */
+/* -*- Mode: C; tab-width: 4; c-basic-offset: 4 -*-
+
+lagtestino - Lag Test for arduIno
+=================================
+
+This file contains the source code for the firmware that runs on the
+Arduino device. There are two notable things that happen here.
+
+Analog to digital conversion
+----------------------------
+
+To keep hardware complexity down, we do best-effort software temporal
+anti-aliasing. Sampling is done at the maximum chip rate and then
+these values are averaged together to a lower rate for transmission to
+the host computer.
+
+Clock synchronization support
+-----------------------------
+
+See the project README for information about the theory of
+operation. In this firmware, we need to respond to clock requests with
+our current clock value. We use the device's timer1 as our official
+clock.
+
+ */
+
 #include "lagtest_datatypes.h"
+
+// Pin numbers -----------------------------------------------------------------
 #define analogPin 0
 #define LEDPin 13
 
@@ -36,12 +63,14 @@ ISR(ADC_vect)
 
 }
 
+// Interrupt service routine for timer1 overflow -------------------------------
 ISR(TIMER1_OVF_vect)
 {
     epoch++;
 
 }
 
+// Setup timer1 ----------------------------------------------------------------
 void setup_timer1() {
     cli();
     TCCR1A = 0;
@@ -53,6 +82,7 @@ void setup_timer1() {
     sei();
 }
 
+// Setup analog sampling -------------------------------------------------------
 void setup_adc() {
     cli();
 
@@ -69,6 +99,7 @@ void setup_adc() {
     sei();
 }
 
+// Standard arduino setup function ---------------------------------------------
 void setup() {
 
     pinMode(LEDPin, OUTPUT);
@@ -81,6 +112,7 @@ void setup() {
     setup_adc();
 }
 
+// Send data with our simple protocol to the host computer ---------------------
 static inline void send_data(const timed_sample_t samp, const char header) {
     const char * buf;
     Serial.write(header);
@@ -138,4 +170,3 @@ void loop() {
 
     }
 }
-
