@@ -20,11 +20,28 @@ SWITCH_DT = 1.0
 
 class MyApp:
     def __init__(self):
-        port = os.environ.get('LAG_TEST_PORT', '/dev/ttyUSB0' )
-        self.ser = serial.Serial(port=port,
-                                 timeout=0.01,
-                                 baudrate=115200,
-                                 )
+        port = os.environ.get('LAG_TEST_PORT', None)
+        if port is not None:
+            ports = [port]
+        else:
+            if sys.platform.startswith('linux'):
+                ports = ['/dev/ttyUSB0',
+                         '/dev/ttyACM0',
+                         ]
+            else:
+                raise RuntimeError('Do not know default serial ports on your '
+                                   'platform. Set environment variable '
+                                   'LAG_TEST_PORT.')
+        for port in ports:
+            try:
+                self.ser = serial.Serial(port=port,
+                                         timeout=0.01,
+                                         baudrate=115200,
+                                         )
+            except serial.serialutil.SerialException:
+                continue
+            else:
+                break
         self.ser.open()
         self.last_time = time_func() + 0.5 # give half a second to flush buffers
         self._qi = 0
