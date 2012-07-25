@@ -2,6 +2,9 @@
 import pygame
 import serial
 import os, sys, time, collections
+import numpy as np
+
+from time_model import get_time_model, TimeFitError
 
 def uint32(b0,b1,b2,b3):
     return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0
@@ -61,6 +64,7 @@ class MyApp:
         self.font = pygame.font.SysFont("Arial",18)
 
         self.clear_data()
+        self.time_model = None
 
     def clear_data(self):
         print 'cleared data'
@@ -160,7 +164,13 @@ class MyApp:
         ino_stamp = epoch*2**16 + counter
 
         self.times.append( (ino_time_estimate, ino_stamp) )
-
+        if len(self.times) > 3:
+            # require 3 samples to start attempting to fit model
+            tdata = np.array(self.times)
+            try:
+                self.time_model = get_time_model(tdata[:,1], tdata[:,0])
+            except TimeFitError, err:
+                print 'WARNING: error fitting time_model: %s'%err
 
     def _h(self,buf):
         result = buf
@@ -187,8 +197,13 @@ class MyApp:
 
                 if packet_type == 'H':
                     self._last_adc = value
-                    self.adcs.append( (epoch*2**16+count, value) )
-
+                    C_arduino = epoch*2**16 + count
+                    self.adcs.append( (C_arduino,value) )
+                    if self.time_model is not None:
+                        sample_time = self.time_model.framestamp2timestamp(C_arduino)
+                        now = time_func()
+                        mlag = now-sample_time
+                        #print '                      measurement lag %.0f msec'%( mlag*1000.0, )
                     #print '                                                     %d'%value
 
                 if packet_type == 'P':
