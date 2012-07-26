@@ -33,6 +33,8 @@ The parts cost less than $40, and it's a very simple project to make.
 Plug in the GND, +5V, and Vout of the photodetector into the GND, +5V,
 and AIN0 of the Arduino.
 
+[![CircuitLab Schematic vhds6p](https://www.circuitlab.com/circuit/vhds6p/screenshot/540x405/)](https://www.circuitlab.com/circuit/vhds6p/lagtestino/).
+
 To program the lagtestino, get the firmware source code [as a .zip
 archive](https://github.com/strawlab/lagtest/zipball/master) or via
 [our github repository](http://github.com/strawlab/lagtest). [Here's a
