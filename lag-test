@@ -50,7 +50,7 @@ class MyApp:
         self._qi = 0
         self._queries = collections.OrderedDict()
 
-        self._vquery_time = time_func()+0.5
+        self._vquery_time = time_func()+2.5
         self._version_check_started = False
         self._version_check_done = False
 
@@ -156,8 +156,8 @@ class MyApp:
                         self._version_check_started = True
                         print 'made version request'
 
-                if (now - self._vquery_time) > 0.5:
-                    raise RuntimeError('no response to version query')
+                if (now - self._vquery_time) > 2.5:
+                    warnings.warn('no response to version query')
 
     def get_last_adc(self):
         return self._last_adc
