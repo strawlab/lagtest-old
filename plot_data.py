@@ -63,7 +63,7 @@ if 1:
         for switch_row in data['switches']:
             time_host, value = switch_row
             time_arduino = time_model.timestamp2framestamp(time_host)
-            
+
             idx = np.argmin(abs(data['adcs']['time_ino']-time_arduino))
             idx_start = idx-WIDTH
             idx_stop = idx+WIDTH
@@ -87,7 +87,7 @@ if 1:
         # for samples in accum[0]:
         #     ax1.plot(t,samples,'-', color=(0.7,0.7,0.7))
         ax1.plot( t, m0, 'b-', lw=2 )
-        ax1.fill_between( t, m0-s0, m0+s0, 
+        ax1.fill_between( t, m0-s0, m0+s0,
                           facecolor='b',
                           alpha=0.4,
                           linewidth=0 )
@@ -96,7 +96,7 @@ if 1:
         # for samples in accum[1]:
         #     ax2.plot(t,samples,'-', color=(0.7,0.7,0.7))
         ax2.plot( t, m1, 'b-', lw=2 )
-        ax2.fill_between( t, m1-s1, m1+s1, 
+        ax2.fill_between( t, m1-s1, m1+s1,
                           facecolor='b',
                           alpha=0.4,
                           linewidth=0 )
