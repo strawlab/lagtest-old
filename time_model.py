@@ -23,7 +23,7 @@ class TimeModel:
 class TimeFitError(ValueError):
     pass
 
-def get_time_model(T,C, max_residual=1e-5):
+def get_time_model(T,C, max_residual=5e-5):
     # fit linear model of relationship mainbrain timestamp and usb trigger_device framestamp
     gain, offset, resid = model_remote_to_local( T, C)
 

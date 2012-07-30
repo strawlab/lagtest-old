@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.mlab import csv2rec
 import numpy as np
 from time_model import get_time_model
+from matplotlib.transforms import blended_transform_factory
 
 def persist( xo, yo ):
     x = []
@@ -31,30 +32,31 @@ if 1:
     time_model = get_time_model(data['times']['time_ino'],
                                 data['times']['time_host'],
                                 max_residual=1e-4)
-    fig = plt.figure()
-
-    ax1=fig.add_subplot(2,1,1)
-    x,y = persist( data['switches']['time_host'], data['switches']['value'])
-    t0 = x[0]
-    ax1.plot( (x-t0)*1000.0, y, 'g-' )
-
-    ax2=fig.add_subplot(2,1,2,sharex=ax1)
-    t = time_model.framestamp2timestamp(data['adcs']['time_ino'])
-    adc_dt = np.median(t[1:]-t[:-1]) # median dt
-    smooth_len_sec = 0.02
-    n_samps = int(round(smooth_len_sec/adc_dt))
-    y = data['adcs']['adc']
     if 0:
-        w=np.hanning(n_samps)
-        y = np.convolve(w/w.sum(),y,mode='same')
+        fig = plt.figure()
+
+        ax1=fig.add_subplot(2,1,1)
+        x,y = persist( data['switches']['time_host'], data['switches']['value'])
+        t0 = x[0]
+        ax1.plot( (x-t0)*1000.0, y, 'g-' )
+
+        ax2=fig.add_subplot(2,1,2,sharex=ax1)
+        t = time_model.framestamp2timestamp(data['adcs']['time_ino'])
+        adc_dt = np.median(t[1:]-t[:-1]) # median dt
+        smooth_len_sec = 0.02
+        n_samps = int(round(smooth_len_sec/adc_dt))
+        y = data['adcs']['adc']
+        if 0:
+            w=np.hanning(n_samps)
+            y = np.convolve(w/w.sum(),y,mode='same')
+            ax2.plot( (t-t0)*1000.0,
+                      #data['adcs']['adc'],
+                      y,
+                      'g-' )
         ax2.plot( (t-t0)*1000.0,
-                  #data['adcs']['adc'],
-                  y,
-                  'g-' )
-    ax2.plot( (t-t0)*1000.0,
-              data['adcs']['adc'],
-              'b.' )
-    ax2.set_xlabel('time (msec)')
+                  data['adcs']['adc'],
+                  'b.' )
+        ax2.set_xlabel('time (msec)')
 
     if 1:
 
@@ -92,7 +94,7 @@ if 1:
                           alpha=0.4,
                           linewidth=0 )
 
-        ax2 = fig.add_subplot(2,1,2,sharex=ax1)
+        ax2 = fig.add_subplot(2,1,2,sharex=ax1,sharey=ax1)
         # for samples in accum[1]:
         #     ax2.plot(t,samples,'-', color=(0.7,0.7,0.7))
         ax2.plot( t, m1, 'b-', lw=2 )
@@ -101,6 +103,24 @@ if 1:
                           alpha=0.4,
                           linewidth=0 )
 
+        # find crossover point where on->off is dimmer than off->on
+        cond = m0 < m1
+        idx = np.nonzero(cond)[0][0]
+        t_crossover = t[idx]
+
+        ax1.axvline( t_crossover )
+        ax2.axvline( t_crossover )
+
+        trans = blended_transform_factory(ax1.transData, ax1.transAxes)
+        ax1.text(t_crossover, 0.9, 'crossover: %.1f msec'%t_crossover,
+                 transform=trans,
+                 horizontalalignment='center')
+        ax1.set_title('ON->OFF')
+        ax2.set_title('OFF->ON')
+
         ax2.set_xlabel( 'time (msec)')
+        ax2.set_ylabel( 'luminance (DAC units)')
+        ax1.set_ylabel( 'luminance (DAC units)')
+        ax2.set_xlim( (-20,150))
 
     plt.show()
