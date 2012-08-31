@@ -169,7 +169,7 @@ void loop() {
 
             static timed_sample_t version_request;
 
-            version_request.value = 1;
+            version_request.value = 2;
 
             uint8_t SaveSREG_ = SREG;   // save interrupt flag
             cli(); // disable interrupts
@@ -179,6 +179,26 @@ void loop() {
 
             SREG = SaveSREG_; // restore interrupt flags
             send_data(version_request,'V');
+        } else if (cmd=='L') {
+            if (value) {
+                digitalWrite(LEDPin,HIGH); // turn LED on
+            } else {
+                digitalWrite(LEDPin,LOW); // turn LED on
+            }
+
+            static timed_sample_t LED_request;
+
+            LED_request.value = value;
+
+            uint8_t SaveSREG_ = SREG;   // save interrupt flag
+            cli(); // disable interrupts
+
+                LED_request.epoch = epoch;
+                LED_request.ticks = TCNT1;
+
+            SREG = SaveSREG_; // restore interrupt flags
+            send_data(LED_request,'L');
+
         }
 
     }

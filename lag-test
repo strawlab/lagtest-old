@@ -78,6 +78,11 @@ class MyApp:
         self.clear_data()
         self.time_model = None
 
+    def set_led(self,value):
+        char = chr(value)
+        buf = 'L'+char
+        self.ser.write('L'+char)
+
     def clear_data(self):
         print 'cleared data'
         self.switches = []
@@ -139,6 +144,7 @@ class MyApp:
                 self.screen.fill(black)
                 self.screen.fill( self.current_color,
                                   pygame.Rect(25,25,200,200))
+                self.set_led(self.current_color[0])
 
                 adc = self.get_last_adc()
                 surf = self.font.render("luminance: %d" % adc, True, white)
@@ -171,7 +177,7 @@ class MyApp:
         return self._last_adc
 
     def _handle_version(self, value, epoch, count):
-        assert value==1
+        assert value==2
         self._vquery_time = time_func()
         self._version_check_done = True
 
@@ -212,7 +218,7 @@ class MyApp:
             valid = False
             #print repr(buf)
 
-            if buf[0] in ('H','P','V'):
+            if buf[0] in ('H','P','V','L'):
                 packet_type = buf[0]
                 bytes = [ord(char) for char in buf[1:9]]
                 value = bytes[0]
@@ -242,9 +248,10 @@ class MyApp:
 
                 if packet_type == 'P':
                     self._handle_returned_timestamp(value, epoch, count )
-
-                if packet_type == 'V':
+                elif packet_type == 'V':
                     self._handle_version(value, epoch, count )
+                elif packet_type == 'L':
+                    pass
 
             if valid:
                 #print 'valid'
