@@ -4,6 +4,13 @@ import serial
 import os, sys, time, collections
 import numpy as np
 
+try:
+    OrderedDict = collections.OrderedDict
+except AttributeError:
+    # python 2.6 or earlier
+    import ordereddict
+    OrderedDict = ordereddict.OrderedDict
+
 from time_model import get_time_model, TimeFitError
 
 def uint32(b0,b1,b2,b3):
@@ -48,7 +55,7 @@ class MyApp:
         self.ser.open()
         self.last_time = time_func() + 0.5 # give half a second to flush buffers
         self._qi = 0
-        self._queries = collections.OrderedDict()
+        self._queries = OrderedDict()
 
         self._vquery_time = time_func()+2.5
         self._version_check_started = False
