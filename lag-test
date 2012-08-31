@@ -180,6 +180,7 @@ class MyApp:
         assert value==2
         self._vquery_time = time_func()
         self._version_check_done = True
+        print 'version OK'
 
     def _handle_returned_timestamp(self, qi, epoch, counter):
         now = time_func()
