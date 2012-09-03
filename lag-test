@@ -68,6 +68,8 @@ class MyApp:
         self._last_switch = 0.0
         self.current_color = (255,255,255)
 
+        self.additional_lag = 0.0 # add more lag here to double-check measurement
+
         pygame.display.init()
         pygame.font.init()
         self.screen = pygame.display.set_mode( (320,240) )
@@ -101,6 +103,8 @@ class MyApp:
         buf = ''
         black = (0,0,0)
         white = (255,255,255)
+        schedule_switch = False
+
         while 1:
             buf += self.ser.read()
             #print '                               %d: %r'%(len(buf),buf)
@@ -129,27 +133,35 @@ class MyApp:
                         self.save_to_disk()
                         print 'saved'
 
-            switch = False
             if (now - self._last_switch) > SWITCH_DT:
-                switch = True
+                schedule_switch = True
+                save_switch = True
                 self._last_switch = now
                 if self.current_color[0]==0:
-                    self.current_color = white
+                    next_color = white
                 else:
-                    self.current_color = black
+                    next_color = black
+            else:
+                save_switch = False
+
+            if schedule_switch and (now-self._last_switch) >= self.additional_lag:
+                switch = True
+                self.current_color = next_color
+                schedule_switch = False
+            else:
+                switch = False
 
             # throttle drawing
-            if (now - self._last_draw) >= DRAW_DT or switch:
+            if (now - self._last_draw) >= DRAW_DT or switch or save_switch:
 
                 self.screen.fill(black)
                 self.screen.fill( self.current_color,
                                   pygame.Rect(25,25,200,200))
-                self.set_led(self.current_color[0])
 
                 adc = self.get_last_adc()
                 surf = self.font.render("luminance: %d" % adc, True, white)
                 self.screen.blit( surf, (5,5) )
-                if switch:
+                if save_switch:
 
                     # Record the time immediately prior to the call to
                     # flip(). While we could record it afterward, that
@@ -157,7 +169,8 @@ class MyApp:
                     # done drawing to the display on the screen.
 
                     flip_time = time_func()
-                    self.switches.append( (flip_time, self.current_color[0]/255 ) )
+                    self.set_led(next_color[0])
+                    self.switches.append( (flip_time, next_color[0]/255 ) )
                 pygame.display.flip()
 
                 self._last_draw = now
