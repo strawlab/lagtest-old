@@ -1,0 +1,16 @@
+To build this firmware for an Arduino Uno board on Ubuntu linux, do
+the following steps.
+
+Install the required software::
+
+    sudo apt-get install arduino-mk
+
+Make the firmware (`build-cli/lagtestino.hex`)::
+
+    make -f Makefile.uno
+
+Upload the firmware onto your Arduino device::
+
+    make -f Makefile.uno upload
+
+
