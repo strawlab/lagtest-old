@@ -253,12 +253,6 @@ class MyApp:
                     self._last_adc = value
                     C_arduino = epoch*2**16 + count
                     self.adcs.append( (C_arduino,value) )
-                    if self.time_model is not None:
-                        sample_time = self.time_model.framestamp2timestamp(C_arduino)
-                        now = time_func()
-                        mlag = now-sample_time
-                        #print '                      measurement lag %.0f msec'%( mlag*1000.0, )
-                    #print '                                                     %d'%value
 
                 if packet_type == 'P':
                     self._handle_returned_timestamp(value, epoch, count )
