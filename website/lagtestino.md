@@ -3,12 +3,13 @@ title: lagtestino
 layout: default
 ---
 
-Building and programming the lagtestino
-=======================================
+# lagtestino
 
 The lagtestino ("lagtest" + "Arduino") is the name of the hardware
 required to accurately test lag. You build it yourself. The parts cost
 less than $40, and it's very simple to make.
+
+## Building and programming
 
 The parts are:
 
@@ -31,3 +32,8 @@ guide that describes what you need to
 do.](http://arduino.cc/it/Guide/Windows) Now, after getting the blink
 example to work, open the lagtestino project and upload it to your
 device.
+
+## how it works
+
+You may want to read about the details of the
+[synchronization](/synchronization) algorithm.
