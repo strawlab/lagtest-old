@@ -1,0 +1,303 @@
+#!/usr/bin/env python
+from gi.repository import Gtk, Gdk, GLib, GObject
+import serial
+import os, sys, time, collections
+import numpy as np
+import warnings
+import threading, Queue
+
+try:
+    OrderedDict = collections.OrderedDict
+except AttributeError:
+    # python 2.6 or earlier
+    import ordereddict
+    OrderedDict = ordereddict.OrderedDict
+
+from time_model import get_time_model, TimeFitError
+
+GObject.threads_init()
+Gdk.threads_init()
+
+def uint32(b0,b1,b2,b3):
+    return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0
+
+def uint16(b0,b1):
+    return (b1 << 8) + b0
+
+if sys.platform.startswith('win'):
+    time_func = time.clock
+else:
+    time_func = time.time
+
+QUERY_DT = 1.0 # n seconds between clock info requests
+DRAW_DT = 1.0/60.0 # 60 fps
+SWITCH_DT = 1.0
+
+def _setup_serial():
+    port = os.environ.get('LAG_TEST_PORT', None)
+    if port is not None:
+        ports = [port]
+    else:
+        if sys.platform.startswith('linux'):
+            ports = ['/dev/ttyUSB0',
+                     '/dev/ttyACM0',
+                     ]
+        else:
+            raise RuntimeError('Do not know default serial ports on your '
+                               'platform. Set environment variable '
+                               'LAG_TEST_PORT.')
+    ser = None
+    for port in ports:
+        try:
+            ser = serial.Serial(port=port,
+                                timeout=0.01,
+                                baudrate=115200,
+                                )
+        except serial.serialutil.SerialException:
+            continue
+        else:
+            break
+    if ser is None:
+        raise RuntimeError('Could not find serial port at any of %r'%ports)
+    return ser
+
+class SerialThread(threading.Thread):
+    def __init__(self,name,args):
+        super(SerialThread,self).__init__(name=name)
+        self.__args=args
+
+    def set_led(self,value):
+        char = chr(value)
+        buf = 'L'+char
+        self.ser.write('L'+char)
+
+    def run(self):
+        self.last_time = time_func() + 0.5 # give half a second to flush buffers
+        self._qi = 0
+        self._queries = OrderedDict()
+
+        self._vquery_time = time_func()+2.5
+        self._version_check_started = False
+        self._version_check_done = False
+
+        self.ser, self.adc_q, self.time_q, self.outq = self.__args
+        buf = ''
+        while 1:
+
+            # get all pending data
+            while 1:
+                try:
+                    led_value = self.outq.get_nowait()
+                    self.set_led(led_value)
+                except Queue.Empty:
+                    break
+
+            buf += self.ser.read()
+            #print '                               %d: %r'%(len(buf),buf)
+            while len(buf) >= 9:
+                buf = self._h(buf)
+
+            now = time_func()
+            if (now - self.last_time) > QUERY_DT:
+                # request sample
+
+                self._queries[ self._qi ] = now
+
+                #print 'timestamp query', self._qi
+                self.ser.write( 'P'+chr(self._qi) )
+
+                self._qi = (self._qi + 1) % 256
+                self.last_time = now
+
+            # version check
+            if not self._version_check_done:
+                if not self._version_check_started:
+                    if now >= self._vquery_time:
+                        self.ser.write( 'V?' )
+                        self._version_check_started = True
+                        print 'made version request'
+
+                if (now - self._vquery_time) > 2.5:
+                    warnings.warn('no response to version query')
+
+    def _handle_version(self, value, epoch, count):
+        assert value==2
+        self._vquery_time = time_func()
+        self._version_check_done = True
+        print 'version OK'
+
+    def _handle_returned_timestamp(self, qi, epoch, counter):
+        now = time_func()
+
+        while len(self._queries) > 50:
+            old_qi = self._queries.popitem(last=False)
+            print 'old_qi',old_qi
+            print 'WARNING: never got return for query %d'%old_qi
+
+        try:
+            send_timestamp = self._queries.pop( qi )
+        except KeyError:
+            print 'WARNING: could not find original data for query %d'%qi
+            return
+
+        max_error = now-send_timestamp
+        if max_error > 0.015: # 15 msec cutoff
+            print 'WARNING: clock sample took %.1f msec. Ignoring value.'%( max_error*1e3 )
+            return
+
+        ino_time_estimate = (now+send_timestamp)*0.5
+        ino_stamp = epoch*2**16 + counter
+
+        self.time_q.put( (ino_time_estimate, ino_stamp) )
+
+    def _h(self,buf):
+        result = buf
+        if len(buf) >= 9:
+            valid = False
+            #print repr(buf)
+
+            if buf[0] in ('H','P','V','L'):
+                packet_type = buf[0]
+                bytes = [ord(char) for char in buf[1:9]]
+                value = bytes[0]
+                e0,e1,e2,e3 = bytes[1:5]
+                t0,t1 = bytes[5:7]
+                expected_chksum = bytes[7]
+                actual_chksum = sum( bytes[:7] ) % 256
+                #print bytes
+
+                if actual_chksum == expected_chksum:
+                    valid = True
+                # if packet_type != 'H':
+                #     print '%s: %d,%d,%d'%(packet_type, value, uint32(e0,e1,e2,e3), uint16(t0,t1) )
+                epoch = uint32(e0,e1,e2,e3)
+                count = uint16(t0,t1)
+
+                if packet_type == 'H':
+                    C_arduino = epoch*2**16 + count
+                    self.adc_q.put( (C_arduino,value) )
+
+                if packet_type == 'P':
+                    self._handle_returned_timestamp(value, epoch, count )
+                elif packet_type == 'V':
+                    self._handle_version(value, epoch, count )
+                elif packet_type == 'L':
+                    pass
+
+            if valid:
+                #print 'valid'
+                result = buf[9:]
+
+            if not valid:
+                print 'not valid'
+                result = buf[1:] # ignore this potential start and do a frame-shift
+
+        return result
+
+class MyApp(Gtk.Window):
+    def __init__(self):
+        Gtk.Window.__init__(self, title="Window")
+        self.ser = _setup_serial()
+        self.ser.open()
+        self.adc_q = Queue.Queue()
+        self.time_q = Queue.Queue()
+        self.outq = Queue.Queue()
+        self.last_adc = 0, 0
+
+        self.times = []
+        self.time_model = None
+
+        self.ser_thread = SerialThread(name="serial thread",
+                                       args=(self.ser,self.adc_q,self.time_q,self.outq))
+        self.ser_thread.daemon = True
+        self.ser_thread.start()
+
+        self.set_default_size(600,400)
+
+        self.label = Gtk.Label("Hello ")
+        self.color_box = Gtk.EventBox()
+        self.is_white = False
+        _, self.black = Gdk.Color.parse('black')
+        _, self.white = Gdk.Color.parse('white')
+
+        btn = Gtk.Button("clear data")
+        btn.connect("clicked", self.on_clear_data)
+        box = Gtk.HBox()
+        box.pack_start(self.label, True, True, 0)
+        box.pack_start(self.color_box, True, True, 0)
+        box.pack_start(btn, True, True, 0)
+
+        btn2 = Gtk.Button("save data")
+        btn2.connect("clicked", self.on_save_data)
+        box.pack_start(btn2, True, True, 0)
+
+        self.add(box)
+        self.show_all()
+
+        self.on_clear_data()
+        GLib.timeout_add(100, self.getdata)
+        GLib.timeout_add(int(1000*DRAW_DT), self.update_ui)
+        GLib.timeout_add(int(1000*SWITCH_DT), self.switch_color)
+
+    def on_clear_data(self, btn=None):
+        print 'cleared data'
+        self.switches = []
+        self.times = []
+        self.adcs = []
+
+    def on_save_data(self, btn=None):
+        for table in ['switches', 'times', 'adcs']:
+            fname = table+'.csv'
+            data = getattr(self,table)
+            with open(fname,mode='w') as fd:
+                for row in data:
+                    fd.write( ','.join( map(repr,row) ) + '\n' )
+
+    def getdata(self):
+        # get all pending data
+        while 1:
+            try:
+                self.last_adc = self.adc_q.get_nowait()
+                self.adcs.append( self.last_adc )
+            except Queue.Empty:
+                break
+
+        new_time = False
+        while 1:
+            try:
+                self.times.append( self.time_q.get_nowait() )
+                new_time = True
+            except Queue.Empty:
+                break
+
+        if new_time and len(self.times) > 3:
+                # require 3 samples to start attempting to fit model
+                tdata = np.array(self.times[-100:])
+                try:
+                    self.time_model = get_time_model(tdata[:,1], tdata[:,0])
+                except TimeFitError, err:
+                    print 'WARNING: error fitting time_model: %s'%err
+
+        return True
+
+    def update_ui(self):
+        self.label.set_text('current luminance: % 3d'%self.last_adc[1])
+        return True
+
+    def switch_color(self):
+        if self.is_white:
+            self.color_box.modify_bg( Gtk.StateType.NORMAL, self.black)
+            self.is_white = False
+        else:
+            self.color_box.modify_bg( Gtk.StateType.NORMAL, self.white)
+            self.is_white = True
+        cval = int(self.is_white)
+        self.outq.put( cval )
+        flip_time = time_func()
+        self.switches.append( (flip_time, cval) )
+        return True
+
+if __name__ == "__main__":
+    u = MyApp()
+    u.connect("delete-event", Gtk.main_quit)
+    Gtk.main()
