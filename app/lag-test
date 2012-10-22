@@ -27,7 +27,7 @@ else:
 
 QUERY_DT = 1.0 # n seconds between clock info requests
 DRAW_DT = 1.0/60.0 # 60 fps
-SWITCH_DT = 1.0
+SWITCH_DT = 0.5
 
 class MyApp:
     def __init__(self):
