@@ -43,6 +43,7 @@ class MyApp:
                 raise RuntimeError('Do not know default serial ports on your '
                                    'platform. Set environment variable '
                                    'LAG_TEST_PORT.')
+        self.ser = None
         for port in ports:
             try:
                 self.ser = serial.Serial(port=port,
@@ -53,6 +54,8 @@ class MyApp:
                 continue
             else:
                 break
+        if self.ser is None:
+            raise RuntimeError('Could not find serial port at any of %r'%ports)
         self.ser.open()
         self.last_time = time_func() + 0.5 # give half a second to flush buffers
         self._qi = 0
