@@ -17,10 +17,10 @@ the host computer.
 Clock synchronization support
 -----------------------------
 
-See the project README for information about the theory of
-operation. In this firmware, we need to respond to clock requests with
-our current clock value. We use the device's timer1 as our official
-clock.
+See the http://lagtest.org/synchronization for information about the
+theory of operation. In this firmware, we need to respond to clock
+requests with our current clock value. We use the device's timer1 as
+our official clock.
 
  */
 
