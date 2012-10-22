@@ -222,8 +222,8 @@ class MyApp(Gtk.Window):
         btn = Gtk.Button("clear data")
         btn.connect("clicked", self.on_clear_data)
         box = Gtk.HBox()
-        box.pack_start(self.label, True, True, 0)
         box.pack_start(self.color_box, True, True, 0)
+        box.pack_start(self.label, True, True, 0)
         box.pack_start(btn, True, True, 0)
 
         btn2 = Gtk.Button("save data")
