@@ -180,10 +180,11 @@ void loop() {
             SREG = SaveSREG_; // restore interrupt flags
             send_data(version_request,'V');
         } else if (cmd=='L') {
+            // set LED/DOUT (used for debugging)
             if (value) {
                 digitalWrite(LEDPin,HIGH); // turn LED on
             } else {
-                digitalWrite(LEDPin,LOW); // turn LED on
+                digitalWrite(LEDPin,LOW); // turn LED off
             }
 
             static timed_sample_t LED_request;

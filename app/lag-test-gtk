@@ -68,7 +68,6 @@ class SerialThread(threading.Thread):
 
     def set_led(self,value):
         char = chr(value)
-        buf = 'L'+char
         self.ser.write('L'+char)
 
     def run(self):

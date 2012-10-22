@@ -82,7 +82,6 @@ class MyApp:
 
     def set_led(self,value):
         char = chr(value)
-        buf = 'L'+char
         self.ser.write('L'+char)
 
     def clear_data(self):
