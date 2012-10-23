@@ -9,6 +9,9 @@ class LagPlotCanvas(FigureCanvasGTK3Agg):
         super(LagPlotCanvas,self).__init__(self.fig)
 
         self.ax = self.fig.add_subplot(1,1,1)
+        self.ax.set_xlim(-10,90)
+        self.ax.set_xlabel('time (milliseconds)')
+        self.ax.set_ylabel('luminance (ADC units)')
         self.did_once = False
         self.vline = None
 
