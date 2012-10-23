@@ -33,6 +33,7 @@ QUERY_DT = 1.0 # n seconds between clock info requests
 DRAW_DT = 1.0/60.0 # 60 fps
 SWITCH_DT = 0.5 # switch black/white twice per second
 PLOT_DT = 0.5 # update plots twice per second
+TRIM_DT = 60.0 # trim accummulated data every minute
 
 class NoValidSerialError(serial.serialutil.SerialException):
     pass
@@ -257,6 +258,7 @@ class MyApp:
         GLib.timeout_add(100, self.getdata)
         GLib.timeout_add(int(1000*DRAW_DT), self.update_ui)
         GLib.timeout_add(int(1000*SWITCH_DT), self.switch_color)
+        GLib.timeout_add(int(1000*TRIM_DT), self.on_trim_data)
 
     def on_clear_data(self, btn=None):
         print 'cleared data'
@@ -264,6 +266,21 @@ class MyApp:
         self.times = []
         self.adcs = []
         self.time_model = None
+
+    def on_trim_data(self):
+        keep_n_times = 500
+        keep_n_switches = 5000
+        samples_per_sec = 1000
+        samples_per_switch = samples_per_sec*SWITCH_DT
+        keep_n_samples = keep_n_switches * samples_per_switch
+
+        if len(self.switches) > keep_n_switches:
+            del self.switches[-keep_n_switches:]
+        if len(self.times) > keep_n_times:
+            del self.times[-keep_n_times:]
+        if len(self.adcs) > keep_n_samples:
+            del self.adcs[-keep_n_samples]
+        return True
 
     def on_save_data(self, btn=None):
         for table in ['switches', 'times', 'adcs']:
