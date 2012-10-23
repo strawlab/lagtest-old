@@ -86,7 +86,7 @@ class SerialThread(threading.Thread):
         try:
             self.ser = _setup_serial()
         except NoValidSerialError:
-            self.vq.put('failed to detect USB')
+            self.vq.put('Failed to detect USB. Generating fake data.')
             raise
         self.ser.open()
 
@@ -212,7 +212,6 @@ class MyApp:
         self.last_adc = 0, 0
 
         self.times = []
-        self.time_model = None
 
         self.ser_thread = SerialThread(name="serial thread",
                                        args=(self.adc_q,self.time_q,
@@ -243,6 +242,7 @@ class MyApp:
         self.switches = []
         self.times = []
         self.adcs = []
+        self.time_model = None
 
     def on_save_data(self, btn=None):
         for table in ['switches', 'times', 'adcs']:
@@ -252,7 +252,27 @@ class MyApp:
                 for row in data:
                     fd.write( ','.join( map(repr,row) ) + '\n' )
 
+    def make_fake_data(self):
+        # no serial port - fake data
+        if self.time_model is None:
+            self.time_model = get_time_model( np.arange(10), np.arange(10) )
+        if len(self.times)==0:
+            for i in range(10):
+                self.times.append( (i,i) )
+        now = time.time()
+        for i in range(100):
+            nowi = now + i*0.001
+            value1 = np.sin( nowi ) * 0.5 + 0.5
+            value255 = int(value1*255)
+
+            self.last_adc = ( nowi, value255 )
+            self.adcs.append( self.last_adc )
+
     def getdata(self):
+        if not self.ser_thread.is_alive():
+            self.make_fake_data()
+            return True
+
         # get all pending data
         while 1:
             try:
