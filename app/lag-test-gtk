@@ -211,11 +211,11 @@ class SerialThread(threading.Thread):
 
 class MyApp:
     def __init__(self):
-        b = Gtk.Builder()
+        b = self.builder = Gtk.Builder()
         b.add_from_file("lag-test-gtk.ui")
         b.connect_signals(self)
 
-        w = b.get_object("window1")
+        w = self.window = b.get_object("window1")
         w.connect("delete-event", Gtk.main_quit)
 
         self.adc_q = Queue.Queue()
@@ -293,6 +293,9 @@ class MyApp:
                 'times':self.times,
                 'adcs':self.adcs,
                 }
+        from_gui_names = ['manufacturer', 'model', 'comments', 'username']
+        for name in from_gui_names:
+            data[name] = self.builder.get_object(name).get_text()
         with open(fname,mode='w') as fd:
             fd.write(json.dumps( data ))
 
