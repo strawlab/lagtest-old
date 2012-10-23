@@ -299,6 +299,14 @@ class MyApp:
         with open(fname,mode='w') as fd:
             fd.write(json.dumps( data ))
 
+        dialog = Gtk.MessageDialog(self.window, 0, Gtk.MessageType.INFO,
+                                   Gtk.ButtonsType.OK, "Data successfully saved.")
+        dialog.format_secondary_text(
+            "Saved to %r"%fname)
+        dialog.run()
+
+        dialog.destroy()
+
     def make_fake_data(self):
         # no serial port - fake data
         if self.time_model is None:
