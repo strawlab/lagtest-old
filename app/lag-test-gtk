@@ -351,6 +351,8 @@ class MyApp:
         adcs = make_recarray( self.adcs, 'time_ino','adc' )
 
         time_model = self.time_model
+        if time_model is None:
+            return
 
         WIDTH = 100
         accum = {0:[], 1:[]}
