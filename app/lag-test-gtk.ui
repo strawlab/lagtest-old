@@ -25,7 +25,7 @@
                   <object class="GtkLabel" id="current_luminance_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">current_luminance_label</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -37,7 +37,7 @@
                   <object class="GtkLabel" id="lag_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">lag_label</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -214,7 +214,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
-            <property name="label" translatable="yes">device_status_label</property>
           </object>
           <packing>
             <property name="expand">False</property>
