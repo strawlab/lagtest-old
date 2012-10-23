@@ -290,12 +290,13 @@ class MyApp(Gtk.Window):
         self.current_luminance_label.set_text(
             'current luminance: % 3d'%self.last_adc[1])
 
-        try:
-            t = self.vq.get_nowait()
-        except Queue.Empty:
-            pass
-        else:
-            self.device_status.set_text('USB status: %s'%t)
+        while 1:
+            try:
+                t = self.vq.get_nowait()
+            except Queue.Empty:
+                break
+            else:
+                self.device_status.set_text('USB status: %s'%t)
 
         return True
 
