@@ -13,6 +13,7 @@ except AttributeError:
     OrderedDict = ordereddict.OrderedDict
 
 from time_model import get_time_model, TimeFitError
+from lag_plot_window import LagPlotCanvas
 
 GObject.threads_init()
 Gdk.threads_init()
@@ -30,7 +31,8 @@ else:
 
 QUERY_DT = 1.0 # n seconds between clock info requests
 DRAW_DT = 1.0/60.0 # 60 fps
-SWITCH_DT = 0.5
+SWITCH_DT = 0.5 # switch black/white twice per second
+PLOT_DT = 0.5 # update plots twice per second
 
 class NoValidSerialError(serial.serialutil.SerialException):
     pass
@@ -62,6 +64,15 @@ def _setup_serial():
     if ser is None:
         raise NoValidSerialError('Could not find serial port at any of %r'%ports)
     return ser
+
+def make_recarray( orig, n0, n1 ):
+    arr0 = np.array([row[0] for row in orig])
+    arr1 = np.array([row[1] for row in orig])
+    result = np.empty( (len(arr0),), dtype=
+                       [(n0,arr0.dtype),(n1,arr1.dtype)])
+    result[n0] = arr0
+    result[n1] = arr1
+    return result
 
 class SerialThread(threading.Thread):
     def __init__(self,name,args):
@@ -229,6 +240,15 @@ class MyApp:
         b.get_object("clear_data_button").connect("clicked", self.on_clear_data)
         b.get_object("save_data_button").connect("clicked", self.on_save_data)
 
+        self._last_canvas_update = 0
+        self.off_on_canvas = LagPlotCanvas()
+        box = b.get_object("off_on_plot_box")
+        box.pack_start( self.off_on_canvas, True, True, 0 )
+
+        self.on_off_canvas = LagPlotCanvas()
+        box = b.get_object("on_off_plot_box")
+        box.pack_start( self.on_off_canvas, True, True, 0 )
+
         self.on_clear_data()
 
         w.show_all()
@@ -299,7 +319,63 @@ class MyApp:
 
         return True
 
+    def _update_plots(self):
+        now = time.time()
+        if (now-self._last_canvas_update) < PLOT_DT:
+            return
+        self._last_canvas_update = now
+
+        switches = make_recarray( self.switches, 'time_host','value')
+        adcs = make_recarray( self.adcs, 'time_ino','adc' )
+
+        time_model = self.time_model
+
+        WIDTH = 100
+        accum = {0:[], 1:[]}
+
+        t = None
+        for switch_row in switches:
+            time_host, value = switch_row
+            time_arduino = time_model.timestamp2framestamp(time_host)
+
+            idx = np.argmin(abs(adcs['time_ino']-time_arduino))
+            idx_start = idx-WIDTH
+            idx_stop = idx+WIDTH
+            if idx_start < 0:
+                continue
+            if idx_stop >= len(adcs):
+                continue
+            accum[ value ].append( adcs['adc'][idx_start:idx_stop] )
+
+            t = time_model.framestamp2timestamp(
+                adcs['time_ino'][idx_start:idx_stop])
+        if t is None:
+            # not enough data yet?
+            return
+        t = (t-t[WIDTH])*1000.0
+
+        m0 = self.on_off_canvas.new_data( t, accum[0] ).get('mean',None)
+        m1 = self.off_on_canvas.new_data( t, accum[1] ).get('mean',None)
+
+        if m0 is None or m1 is None:
+            return
+
+        # find crossover point where on->off is dimmer than off->on
+        cond = m0 < m1
+        try:
+            idx = np.nonzero(cond)[0][0]
+        except IndexError:
+            return
+        t_crossover = t[idx]
+
+        self.on_off_canvas.show_lag( t_crossover )
+        self.off_on_canvas.show_lag( t_crossover )
+
+        self.on_off_canvas.draw()
+        self.off_on_canvas.draw()
+
     def update_ui(self):
+        self._update_plots()
         self.current_luminance_label.set_text(
             'current luminance: % 3d'%self.last_adc[1])
 
