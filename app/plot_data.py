@@ -32,32 +32,6 @@ if 1:
     time_model = get_time_model(data['times']['time_ino'],
                                 data['times']['time_host'],
                                 max_residual=1e-4)
-    if 0:
-        fig = plt.figure()
-
-        ax1=fig.add_subplot(2,1,1)
-        x,y = persist( data['switches']['time_host'], data['switches']['value'])
-        t0 = x[0]
-        ax1.plot( (x-t0)*1000.0, y, 'g-' )
-
-        ax2=fig.add_subplot(2,1,2,sharex=ax1)
-        t = time_model.framestamp2timestamp(data['adcs']['time_ino'])
-        adc_dt = np.median(t[1:]-t[:-1]) # median dt
-        smooth_len_sec = 0.02
-        n_samps = int(round(smooth_len_sec/adc_dt))
-        y = data['adcs']['adc']
-        if 0:
-            w=np.hanning(n_samps)
-            y = np.convolve(w/w.sum(),y,mode='same')
-            ax2.plot( (t-t0)*1000.0,
-                      #data['adcs']['adc'],
-                      y,
-                      'g-' )
-        ax2.plot( (t-t0)*1000.0,
-                  data['adcs']['adc'],
-                  'b.' )
-        ax2.set_xlabel('time (msec)')
-
     if 1:
 
         WIDTH = 100
@@ -86,8 +60,6 @@ if 1:
 
         fig = plt.figure()
         ax1 = fig.add_subplot(2,1,1)
-        # for samples in accum[0]:
-        #     ax1.plot(t,samples,'-', color=(0.7,0.7,0.7))
         ax1.plot( t, m0, 'b-', lw=2 )
         ax1.fill_between( t, m0-s0, m0+s0,
                           facecolor='b',
@@ -95,8 +67,6 @@ if 1:
                           linewidth=0 )
 
         ax2 = fig.add_subplot(2,1,2,sharex=ax1,sharey=ax1)
-        # for samples in accum[1]:
-        #     ax2.plot(t,samples,'-', color=(0.7,0.7,0.7))
         ax2.plot( t, m1, 'b-', lw=2 )
         ax2.fill_between( t, m1-s1, m1+s1,
                           facecolor='b',
