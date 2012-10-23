@@ -32,6 +32,9 @@ QUERY_DT = 1.0 # n seconds between clock info requests
 DRAW_DT = 1.0/60.0 # 60 fps
 SWITCH_DT = 0.5
 
+class NoValidSerialError(serial.serialutil.SerialException):
+    pass
+
 def _setup_serial():
     port = os.environ.get('LAG_TEST_PORT', None)
     if port is not None:
@@ -57,7 +60,7 @@ def _setup_serial():
         else:
             break
     if ser is None:
-        raise RuntimeError('Could not find serial port at any of %r'%ports)
+        raise NoValidSerialError('Could not find serial port at any of %r'%ports)
     return ser
 
 class SerialThread(threading.Thread):
@@ -78,7 +81,15 @@ class SerialThread(threading.Thread):
         self._version_check_started = False
         self._version_check_done = False
 
-        self.ser, self.adc_q, self.time_q, self.outq, self.vq = self.__args
+        self.adc_q, self.time_q, self.outq, self.vq = self.__args
+
+        try:
+            self.ser = _setup_serial()
+        except NoValidSerialError:
+            self.vq.put('failed to detect USB')
+            raise
+        self.ser.open()
+
         buf = ''
         while 1:
 
@@ -188,8 +199,6 @@ class SerialThread(threading.Thread):
 class MyApp(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Window")
-        self.ser = _setup_serial()
-        self.ser.open()
         self.adc_q = Queue.Queue()
         self.time_q = Queue.Queue()
         self.outq = Queue.Queue()
@@ -200,7 +209,7 @@ class MyApp(Gtk.Window):
         self.time_model = None
 
         self.ser_thread = SerialThread(name="serial thread",
-                                       args=(self.ser,self.adc_q,self.time_q,
+                                       args=(self.adc_q,self.time_q,
                                              self.outq,self.vq))
         self.ser_thread.daemon = True
         self.ser_thread.start()
