@@ -6,6 +6,8 @@ import numpy as np
 import threading, Queue
 import json
 
+__version__ = '1.0'
+
 try:
     OrderedDict = collections.OrderedDict
 except AttributeError:
@@ -296,6 +298,9 @@ class MyApp:
         from_gui_names = ['manufacturer', 'model', 'comments', 'username']
         for name in from_gui_names:
             data[name] = self.builder.get_object(name).get_text()
+        data['__version__'] = __version__
+        data['__data_schema_version__'] = '1.0'
+
         with open(fname,mode='w') as fd:
             fd.write(json.dumps( data ))
 
