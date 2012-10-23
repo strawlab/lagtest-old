@@ -234,6 +234,10 @@ class MyApp:
         self.lag_label = b.get_object("lag_label")
         self.current_luminance_label = b.get_object("current_luminance_label")
         self.device_status = b.get_object("device_status_label")
+        b.get_object('red_box').modify_bg( Gtk.StateType.NORMAL, Gdk.Color.parse('red')[1] )
+        b.get_object('green_box').modify_bg( Gtk.StateType.NORMAL, Gdk.Color.parse('green')[1] )
+        b.get_object('blue_box').modify_bg( Gtk.StateType.NORMAL, Gdk.Color.parse('blue')[1] )
+
         self.color_box = b.get_object("color_box")
         self.is_white = False
         _, self.black = Gdk.Color.parse('black')
