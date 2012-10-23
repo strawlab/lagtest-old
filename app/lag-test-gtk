@@ -196,9 +196,15 @@ class SerialThread(threading.Thread):
 
         return result
 
-class MyApp(Gtk.Window):
+class MyApp:
     def __init__(self):
-        Gtk.Window.__init__(self, title="Window")
+        b = Gtk.Builder()
+        b.add_from_file("lag-test-gtk.ui")
+        b.connect_signals(self)
+
+        w = b.get_object("window1")
+        w.connect("delete-event", Gtk.main_quit)
+
         self.adc_q = Queue.Queue()
         self.time_q = Queue.Queue()
         self.outq = Queue.Queue()
@@ -214,33 +220,20 @@ class MyApp(Gtk.Window):
         self.ser_thread.daemon = True
         self.ser_thread.start()
 
-        self.set_default_size(600,400)
-
-        self.current_luminance_label = Gtk.Label("Hello ")
-        self.device_status = Gtk.Label("USB status: ")
-        self.color_box = Gtk.EventBox()
+        self.current_luminance_label = b.get_object("current_luminance_label")
+        self.device_status = b.get_object("device_status_label")
+        self.color_box = b.get_object("color_box")
         self.is_white = False
         _, self.black = Gdk.Color.parse('black')
         _, self.white = Gdk.Color.parse('white')
 
-        btn = Gtk.Button("clear data")
-        btn.connect("clicked", self.on_clear_data)
-        box = Gtk.HBox()
-        b2 = Gtk.VBox()
-        box.pack_start(self.color_box, True, True, 0)
-        box.pack_start(b2, True, True, 0)
-        b2.pack_start(self.current_luminance_label, True, True, 0)
-        b2.pack_start(self.device_status, True, True, 0)
-        box.pack_start(btn, True, True, 0)
-
-        btn2 = Gtk.Button("save data")
-        btn2.connect("clicked", self.on_save_data)
-        box.pack_start(btn2, True, True, 0)
-
-        self.add(box)
-        self.show_all()
+        b.get_object("clear_data_button").connect("clicked", self.on_clear_data)
+        b.get_object("save_data_button").connect("clicked", self.on_save_data)
 
         self.on_clear_data()
+
+        w.show_all()
+
         GLib.timeout_add(100, self.getdata)
         GLib.timeout_add(int(1000*DRAW_DT), self.update_ui)
         GLib.timeout_add(int(1000*SWITCH_DT), self.switch_color)
@@ -315,5 +308,4 @@ class MyApp(Gtk.Window):
 
 if __name__ == "__main__":
     u = MyApp()
-    u.connect("delete-event", Gtk.main_quit)
     Gtk.main()
