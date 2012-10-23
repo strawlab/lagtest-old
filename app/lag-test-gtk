@@ -4,6 +4,7 @@ import serial
 import os, sys, time, collections
 import numpy as np
 import threading, Queue
+import json
 
 try:
     OrderedDict = collections.OrderedDict
@@ -287,12 +288,13 @@ class MyApp:
         return True
 
     def on_save_data(self, btn=None):
-        for table in ['switches', 'times', 'adcs']:
-            fname = table+'.csv'
-            data = getattr(self,table)
-            with open(fname,mode='w') as fd:
-                for row in data:
-                    fd.write( ','.join( map(repr,row) ) + '\n' )
+        fname = time.strftime( 'lagtest_%Y%m%d_%H%M%S.json' )
+        data = {'switches':self.switches,
+                'times':self.times,
+                'adcs':self.adcs,
+                }
+        with open(fname,mode='w') as fd:
+            fd.write(json.dumps( data ))
 
     def make_fake_data(self):
         # no serial port - fake data
