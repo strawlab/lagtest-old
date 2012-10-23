@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
-from matplotlib.mlab import csv2rec
+import json
 import numpy as np
 from time_model import get_time_model
 from matplotlib.transforms import blended_transform_factory
+import sys
 
 def persist( xo, yo ):
     x = []
@@ -18,16 +19,28 @@ def persist( xo, yo ):
         x.append( xi1 ); y.append(yi)
     return np.array(x), np.array(y)
 
+def make_recarray( orig, n0, n1 ):
+    arr0 = np.array([row[0] for row in orig])
+    arr1 = np.array([row[1] for row in orig])
+    result = np.empty( (len(arr0),), dtype=
+                       [(n0,arr0.dtype),(n1,arr1.dtype)])
+    result[n0] = arr0
+    result[n1] = arr1
+    return result
+
 if 1:
+    fname = sys.argv[1]
+    buf = open(fname).read()
+    data1 = json.loads(buf)
     data = {}
     for (table,cols) in [
         ('switches',['time_host','value']),
         ('times',['time_host','time_ino']),
         ('adcs',['time_ino','adc']),
         ]:
-        fname = table+'.csv'
-        rec = csv2rec( fname, names=cols)
-        data[table] = rec
+        data[table] = make_recarray(data1.pop(table), cols[0], cols[1])
+    for k in data1:
+        print '%s: %r'%(k, data1[k])
 
     time_model = get_time_model(data['times']['time_ino'],
                                 data['times']['time_host'],
