@@ -230,6 +230,7 @@ class MyApp:
         self.ser_thread.daemon = True
         self.ser_thread.start()
 
+        self.lag_label = b.get_object("lag_label")
         self.current_luminance_label = b.get_object("current_luminance_label")
         self.device_status = b.get_object("device_status_label")
         self.color_box = b.get_object("color_box")
@@ -367,6 +368,7 @@ class MyApp:
         except IndexError:
             return
         t_crossover = t[idx]
+        self.lag_label.set_text('lag: %.1f msec'%(t_crossover))
 
         self.on_off_canvas.show_lag( t_crossover )
         self.off_on_canvas.show_lag( t_crossover )

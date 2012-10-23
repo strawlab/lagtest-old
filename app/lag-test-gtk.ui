@@ -34,6 +34,18 @@
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkLabel" id="lag_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">lag_label</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkEventBox" id="color_box">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -44,7 +56,7 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
