@@ -26,6 +26,16 @@ on). The purpose of [lagtest.org](http://lagtest.org) is to let you
 measure the latency from a computer program sending a draw command to
 the result appearing on your screen.
 
+<table>
+  <tr><td align="center">
+    <img src="/assets/img/lag-drawing.png" />
+  </td></tr>
+  <tr><td>
+    <strong>A simple USB device (based on an <a href="http://www.arduino.cc/">Arduino</a> and a
+    photodiode) lets you measure latency from software to photons.</strong>
+  </td></tr>
+</table>
+
 ## How slow is your display?
 
 The [lagtestino](lagtestino) is a USB-connected photodiode. Connect it to your
