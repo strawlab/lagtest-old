@@ -44,6 +44,16 @@ and you have your latency estimate.
 
 <hr>
 
+## To-do list
+
+* Allow logins on the website
+* Allow the desktop app to login with some credentials to the website
+* Allow the desktop app to upload the gathered data to the website
+* Create an interface on the website for querying data (e.g. "select
+  display with lowest latency").
+* Package and test desktop app for easy running in Windows and Mac OS X
+* Rewrite desktop app in C/C++ for a small download size?
+
 ### Credits
 
 Initial software development was done in the [Straw
