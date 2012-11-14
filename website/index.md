@@ -42,8 +42,6 @@ The [lagtestino](lagtestino) is a USB-connected photodiode. Connect it to your
 computer, run the lag-test program, follow the on screen instructions,
 and you have your latency estimate.
 
-<hr>
-
 ## To-do list
 
 * Allow logins on the website
@@ -53,6 +51,8 @@ and you have your latency estimate.
   display with lowest latency").
 * Package and test desktop app for easy running in Windows and Mac OS X
 * Rewrite desktop app in C/C++ for a small download size?
+
+<hr>
 
 ### Credits
 
