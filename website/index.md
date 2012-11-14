@@ -41,3 +41,16 @@ the result appearing on your screen.
 The [lagtestino](lagtestino) is a USB-connected photodiode. Connect it to your
 computer, run the lag-test program, follow the on screen instructions,
 and you have your latency estimate.
+
+<hr>
+
+### Credits
+
+Initial software development was done in the [Straw
+lab](http://strawlab.org) with core funding from [the
+IMP](http://www.imp.ac.at). We would also like to thank other software
+and services that made this possible with relatively little effort:
+Python, numpy, GTK, matplotlib, Arduino, github.
+
+<a href="http://www.imp.ac.at"><img src="/assets/img/imp.png" /></a>
+
