@@ -54,6 +54,12 @@ and you have your latency estimate.
 
 <hr>
 
+### Interesting links
+
+[Latency – the sine qua non of AR and VR](http://blogs.valvesoftware.com/abrash/latency-the-sine-qua-non-of-ar-and-vr/)
+[An investigation of the test process used to date for determining the response time of an LCD monitor, known as input lag](http://www.prad.de/en/monitore/specials/inputlag/inputlag.html)
+[Input Lag Testing](http://www.tftcentral.co.uk/articles/input_lag.htm)
+
 ### Credits
 
 Initial software development was done in the [Straw
