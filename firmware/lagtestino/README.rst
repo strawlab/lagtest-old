@@ -7,10 +7,8 @@ Install the required software::
 
 Make the firmware (`build-cli/lagtestino.hex`)::
 
-    make -f Makefile.uno
+    make
 
 Upload the firmware onto your Arduino device::
 
-    make -f Makefile.uno upload
-
-
+    make upload
