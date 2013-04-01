@@ -51,3 +51,11 @@ class LagPlotCanvas(FigureCanvasGTK3Agg):
             self.vline = self.ax.axvline( t_crossover, color='k')
         else:
             self.vline.set_xdata([t_crossover])
+
+        xmin,xmax = self.ax.get_xlim()
+        if t_crossover <= xmin:
+            xmin = t_crossover-5
+            self.ax.set_xlim(xmin,xmax)
+        elif t_crossover >= xmax:
+            xmax = t_crossover+5
+            self.ax.set_xlim(xmin,xmax)
