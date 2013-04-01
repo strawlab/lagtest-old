@@ -194,8 +194,7 @@ class SerialThread(threading.Thread):
                 if packet_type == 'H':
                     C_arduino = epoch*2**16 + count
                     self.adc_q.put( (C_arduino,value) )
-
-                if packet_type == 'P':
+                elif packet_type == 'P':
                     self._handle_returned_timestamp(value, epoch, count )
                 elif packet_type == 'V':
                     self._handle_version(value, epoch, count )
