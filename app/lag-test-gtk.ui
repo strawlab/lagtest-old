@@ -133,11 +133,9 @@
                     <child>
                       <object class="GtkButton" id="clear_data_button">
                         <property name="label" translatable="yes">Clear Data</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -148,11 +146,9 @@
                     <child>
                       <object class="GtkButton" id="save_data_button">
                         <property name="label" translatable="yes">Save Data</property>
-                        <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
