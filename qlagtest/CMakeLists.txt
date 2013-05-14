@@ -59,8 +59,10 @@ set( CMAKE_FIND_LIBRARY_SUFFIXES ".lib" )
 set (RRJ_SOURCES    "src/timemodel.cpp"
                     "src/openglwindow.cpp"
                     "src/flashingbackground.cpp"
+                    "src/rs232.cpp"
                     "src/lagtestserialportcomm.cpp"
                     "src/serialporthandler.cpp"
+                    "src/latencymodel.cpp"
                     "src/main.cpp"
                                         )
 set (PRJ_INCLUDE "src"

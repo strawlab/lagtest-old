@@ -56,24 +56,23 @@ int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
 
-
     QSurfaceFormat format;
     format.setSamples(4);
 
     TimeModel tm;
     //tm.testModelGenerator();
-    RingBuffer<double> screenFlips(4);
-    RingBuffer<clockPair> adruinoClock(10);
-    RingBuffer<adcMeasurement> adcValues(10);
+    RingBuffer<double> screenFlips(100);
+    RingBuffer<clockPair> adruinoClock(100);
+    RingBuffer<adcMeasurement> adcValues(100);
 
-    /*
+
     // Setup OpenGL Window
     FlashingBackground window(500, &tm, &screenFlips);
     window.setFormat(format);
     window.resize(640, 480);
     window.show();
     window.setAnimating(true);
-*/
+
     qDebug("Creating handler for serial port ...");
     // Setup Serial Port Reader
     SerialPortHandler serial("Com11", 500, &tm, &adruinoClock, &adcValues);

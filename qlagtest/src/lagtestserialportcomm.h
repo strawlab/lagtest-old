@@ -38,6 +38,9 @@ private:
     bool readFrame(uint8_t *buffer, timed_sample_t* frame);
     void initSerialPort();
 
+    int write(unsigned char *data, int size);
+    int read(unsigned char *buffer, int max_size);
+
     //Get current PC time and store data
     TimeModel* tm;
     RingBuffer<clockPair>* clock_storage;
@@ -53,6 +56,7 @@ private:
     QString port;
     int bautRate;
     QSerialPort* serial;
+    int portN;
 
 };
 

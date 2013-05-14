@@ -12,7 +12,7 @@ class RingBuffer
 {
 
 public:
-    RingBuffer(int size);
+    RingBuffer(int size, bool allowOverwrite = false);
     T* get();
     bool canGet();
     int put(T* e);
@@ -23,22 +23,25 @@ private:
     int size;
     int w;
     int r;
+    bool overwrite;
 };
 
 template <class T>
-RingBuffer<T>::RingBuffer(int size)
+RingBuffer<T>::RingBuffer(int size, bool allowOverwrite)
 {
     assert(size > 0);
 
     qDebug("Alloctating [%d] elements of size %d", size, sizeof(T) );
 
-    this->data = (T*)malloc(sizeof(T) * (size+1) );
+    this->size = size + (allowOverwrite?0:1); //If we dont overwrite, there must be a extra element in the ringbuffer
+
+    this->data = (T*)malloc(sizeof(T) * this->size );
     if( this->data == NULL)
         throw std::exception();
 
-    this->size = size+1;
     this->w = 1;
     this->r = 0;
+    this->overwrite = allowOverwrite;
 }
 
 template <class T>
@@ -46,7 +49,7 @@ T* RingBuffer<T>::get()
 {
     int nr = (r+1)%this->size;
 
-    if(nr != w){
+    if( (nr != w) || this->overwrite ){
         r = nr;
         return &(this->data[r]);
     } else {
@@ -69,12 +72,11 @@ template <class T>
 int RingBuffer<T>::put(T *e){
 
 //    qDebug("w=%d, r=%d", w, r);
-
-    if(w != r){
+    if( (w != r) || this->overwrite ){
         memcpy( &(this->data[w]), e, sizeof(T) );
         w = (w+1)%this->size;
-        int left = (w > r)?(size-w+r):(r-w);
-        return left;
+        int remaining = (w > r)?(size-w+r):(r-w);
+        return remaining;
     } else {
         return -1;
     }
