@@ -77,6 +77,7 @@ void setup_timer1() {
     TCCR1B = 0; // normal mode
 
     TCCR1B |= _BV( CS11 ) | _BV( CS10 ); // clock prescaler 64
+    //TCCR1B |= _BV( CS12 ) | _BV( CS10 ); // clock prescaler 1024
 
     TIMSK1 = _BV(TOIE1); // enable interrupt on timer1
     sei();
@@ -164,6 +165,13 @@ void loop() {
                 timestamp_request.ticks = TCNT1;
 
             SREG = SaveSREG_; // restore interrupt flags
+            
+            if (value%2) {
+                digitalWrite(LEDPin,HIGH); // turn LED on
+            } else {
+                digitalWrite(LEDPin,LOW); // turn LED off
+            }
+            
             send_data(timestamp_request,'P');
         } else if (cmd=='V') {
 

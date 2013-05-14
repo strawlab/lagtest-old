@@ -38,6 +38,9 @@
 **
 ****************************************************************************/
 
+#ifndef OPENGLWINDOWCLASS
+#define OPENGLWINDOWCLASS
+
 #include <QtGui/QWindow>
 #include <QtGui/QOpenGLFunctions>
 
@@ -81,3 +84,4 @@ private:
 };
 //! [1]
 
+#endif

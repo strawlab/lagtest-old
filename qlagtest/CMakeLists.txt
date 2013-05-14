@@ -40,6 +40,7 @@ set( CMAKE_AUTOMOC ON ) # http://blogs.kde.org/2011/11/01/cool-new-stuff-cmake-2
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(Qt5SerialPort REQUIRED)
 #find_package(Eigen3 REQUIRED ) //Using the Find script fails! Workaround: set EIGEN3_INCLUDE_DIR directly
 
 #add_definitions(-DUSE_IPP)
@@ -55,17 +56,20 @@ set( CMAKE_FIND_LIBRARY_SUFFIXES ".lib" )
 
 # ============ Main Source files ============== #
 
-set (RRJ_SOURCES "src/openglwindow.cpp"
-                 "src/timemodel.cpp"
-                 "src/main.cpp"
+set (RRJ_SOURCES    "src/timemodel.cpp"
+                    "src/openglwindow.cpp"
+                    "src/flashingbackground.cpp"
+                    "src/lagtestserialportcomm.cpp"
+                    "src/serialporthandler.cpp"
+                    "src/main.cpp"
                                         )
 set (PRJ_INCLUDE "src"
 )
 
 add_executable(lagtest ${RRJ_SOURCES})
-include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR})
+include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${Qt5SerialPort_INCLUDE_DIRS})
 
-qt5_use_modules(lagtest Widgets OpenGL )
+qt5_use_modules(lagtest Widgets OpenGL SerialPort)
 #target_link_libraries(lagtest  ${LIBRARIES} ${QT_LIBRARIES} ${OPENGL_LIBRARIES} )
 target_link_libraries(lagtest  ${OPENGL_LIBRARIES} )
 #CMAKE_EXE_LINKER_FLAGS ( -static )

@@ -54,8 +54,7 @@ OpenGLWindow::OpenGLWindow(QWindow *parent)
     , m_context(0)
     , m_device(0)
 {
-    setSurfaceType(QWindow::OpenGLSurface);
-    //setAutoBufferSwap(true);
+    setSurfaceType(QWindow::OpenGLSurface);    
 }
 //! [1]
 
@@ -74,7 +73,7 @@ void OpenGLWindow::initialize()
 }
 
 void OpenGLWindow::render()
-{
+{    
     if (!m_device)
         m_device = new QOpenGLPaintDevice;
 
@@ -99,7 +98,7 @@ void OpenGLWindow::renderLater()
 bool OpenGLWindow::event(QEvent *event)
 {
     switch (event->type()) {
-    case QEvent::UpdateRequest:
+    case QEvent::UpdateRequest:        
         renderNow();
         return true;
     default:
