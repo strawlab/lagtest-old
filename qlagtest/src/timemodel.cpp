@@ -8,10 +8,51 @@ using namespace Eigen;
 #include <QElapsedTimer>
 
 TimeModel::TimeModel()
+    : cpCnt(0), gain(0), offset(0)
 {
+    // Start QElapsedTimer, this will provide a high accuracy timer
     this->timer = new QElapsedTimer();
     timer->start();
+
+    this->A = MatrixXd::Ones(TimeModel::clockHistory, 2);
+    this->b = VectorXd::Ones( TimeModel::clockHistory );
 }
+
+
+//Return time [ns] since program start
+double TimeModel::getCurrentTime()
+{
+    return (double) this->timer->nsecsElapsed();
+}
+
+double TimeModel::toLocalTime( adcMeasurement adc)
+{
+    double adruinoClock = adc.adruino_epoch*(1<<16) + adc.adruino_ticks;
+    return adruinoClock*this->gain + this->offset;
+}
+
+void TimeModel::update(clockPair cp)
+{
+    //qDebug("Updateing the time model");
+
+    double adruinoClock = cp.adruino_epoch*(1<<16) + cp.adruino_ticks;
+
+    this->A(this->cpCnt, 0) = adruinoClock;
+    this->b(this->cpCnt) = cp.local;
+
+    cpCnt = (cpCnt + 1) % this->clockHistory ;
+    this->x = A.jacobiSvd(ComputeThinU | ComputeThinV).solve(b);
+
+    this->gain = x(0); this->offset = x(1);
+    //qDebug("TimdeModel: gain %g, offset %g", gain, offset);
+
+    // Print the matrix and a test
+    //cout << "A: " << A << endl;
+    //cout << "b: " << b << endl;
+    //cout << "x: " << x << endl;
+    //qDebug("Test %g -> %g", adruinoClock, adruinoClock*gain + offset );
+}
+
 
 //void updateModel()
 
@@ -81,7 +122,4 @@ void TimeModel::testModelGenerator()
     cout << "\nTIME:" << d << endl;
 }
 
-double TimeModel::getCurrentTime()
-{
-    return (double) this->timer->nsecsElapsed();
-}
+

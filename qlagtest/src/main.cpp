@@ -51,10 +51,13 @@
 #include "ringbuffer.hpp"
 #include "lagtestserialportcomm.h"
 #include "serialporthandler.h"
+#include "latencymodel.h"
 
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
+//    RingBuffer<char>::test();
+//    return 1;
 
     QSurfaceFormat format;
     format.setSamples(4);
@@ -63,7 +66,7 @@ int main(int argc, char **argv)
     //tm.testModelGenerator();
     RingBuffer<double> screenFlips(100);
     RingBuffer<clockPair> adruinoClock(100);
-    RingBuffer<adcMeasurement> adcValues(100);
+    RingBuffer<adcMeasurement> adcValues(1000);
 
 
     // Setup OpenGL Window
@@ -80,6 +83,7 @@ int main(int argc, char **argv)
     qDebug("Starting serial port reader thread ...");
     serial.start();
 
+    LatencyModel lm = LatencyModel(1100, &tm, &screenFlips, &adruinoClock, &adcValues);
 
     return app.exec();
 }

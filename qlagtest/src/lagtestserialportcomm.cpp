@@ -169,7 +169,7 @@ void LagTestSerialPortComm::startCommunication()
                         cp.adruino_epoch = frame.epoch;
                         cp.adruino_ticks = frame.ticks;
                         this->clock_storage->put( &cp );
-                        qDebug("Received a adruino clock msg for request %d from %g", frame.value, cp.local );
+                        //qDebug("Received a adruino clock msg for request %d from %g", frame.value, cp.local );
                         break;
                     }
                 }

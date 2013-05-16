@@ -13,10 +13,11 @@ class RingBuffer
 
 public:
     RingBuffer(int size, bool allowOverwrite = false);
-    T* get();
+    bool get(T *data);
     bool canGet();
     int put(T* e);
-
+    int getSize() { return this->size; }
+    static void test();
 
 private:
     T *data;
@@ -45,15 +46,18 @@ RingBuffer<T>::RingBuffer(int size, bool allowOverwrite)
 }
 
 template <class T>
-T* RingBuffer<T>::get()
+bool RingBuffer<T>::get(T* data)
 {
+    //qDebug("w=%d, r=%d", w, r);
     int nr = (r+1)%this->size;
 
     if( (nr != w) || this->overwrite ){
+        //memcpy( data, &(this->data[r]), sizeof(T) );
         r = nr;
-        return &(this->data[r]);
+        *data = this->data[r];
+        return true;
     } else {
-        return NULL;
+        return false;
     }
 }
 
@@ -71,9 +75,10 @@ bool RingBuffer<T>::canGet()
 template <class T>
 int RingBuffer<T>::put(T *e){
 
-//    qDebug("w=%d, r=%d", w, r);
+    //qDebug("w=%d, r=%d", w, r);
     if( (w != r) || this->overwrite ){
-        memcpy( &(this->data[w]), e, sizeof(T) );
+        //memcpy( &(this->data[w]), e, sizeof(T) );
+        this->data[w] = *e;
         w = (w+1)%this->size;
         int remaining = (w > r)?(size-w+r):(r-w);
         return remaining;
@@ -82,21 +87,49 @@ int RingBuffer<T>::put(T *e){
     }
 }
 
+template <class T>
+void RingBuffer<T>::test()
+{
+    char c[] = {'a','b','c','d'};
+    char t; bool b;
+    RingBuffer rb = RingBuffer<char>(4);
 
-/*
-    vp = rb.get();
-    qDebug("Zero element %p", vp);
+    b = rb.get(&t);
+    qDebug("Zero element %d = %p", b, t);
+
+    qDebug("Can get %d", rb.canGet() );
 
     qDebug("Put first: %d left", rb.put(&c[0]) );
-//    vp = rb.get();
-//    r = *(char*)vp;
-    qDebug("Get first: %c ", *(rb.get()) );
+    b = rb.get(&t);
+    qDebug("Get first: %d = %c ", b, t );
 
+    qDebug("Fill and empty ...");
     qDebug("Put first: %d left", rb.put(&c[0]) );
     qDebug("Put second: %d left", rb.put(&c[1]) );
     qDebug("Put third: %d left", rb.put(&c[2]) );
     qDebug("Put fourth: %d left", rb.put(&c[3]) );
 
+    while( rb.canGet() ){
+        b = rb.get(&t);
+        qDebug("Get: %d = %c ", b, t );
+    }
+
+    qDebug("Overfill ...");
+    qDebug("Put first: %d left", rb.put(&c[0]) );
+    qDebug("Put second: %d left", rb.put(&c[1]) );
+    qDebug("Put third: %d left", rb.put(&c[2]) );
+    qDebug("Put fourth: %d left", rb.put(&c[3]) );
+    qDebug("Put first: %d left", rb.put(&c[0]) );
+    qDebug("Put second: %d left", rb.put(&c[1]) );
+    qDebug("Put third: %d left", rb.put(&c[2]) );
+    qDebug("Put fourth: %d left", rb.put(&c[3]) );
+
+    while( rb.canGet() ){
+        b = rb.get(&t);
+        qDebug("Get: %d = %c ", b, t );
+    }
+    return;
+    /*
     qDebug("Get: %c ", *(rb.get()) );
     qDebug("Get: %c ", *(rb.get()) );
     qDebug("Get: %c ", *(rb.get()) );
@@ -136,5 +169,6 @@ int RingBuffer<T>::put(T *e){
     qDebug("Get: %c ", *(rb.get()) );
     qDebug("Get: %c ", *(rb.get()) );
     */
+}
 
 #endif // RINGBUFFER_H

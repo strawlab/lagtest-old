@@ -29,12 +29,12 @@ void FlashingBackground::render()
             glClearColor(1.0, 1.0, 1.0, 1.0);
             double d = this->clock->getCurrentTime();
             this->store->put( &d );
-            qDebug("To White at %g", d );
+            //qDebug("To White at %g", d );
         } else {
             glClearColor(0.0, 0.0, 0.0, 1.0);
             double d = this->clock->getCurrentTime();
             this->store->put( &d );
-            qDebug("To Block at %g", d );
+            //qDebug("To Black at %g", d );
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
