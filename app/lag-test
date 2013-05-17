@@ -48,7 +48,9 @@ def _setup_serial():
     else:
         if sys.platform.startswith('linux'):
             ports = ['/dev/ttyUSB0',
+                     '/dev/ttyUSB1',
                      '/dev/ttyACM0',
+                     '/dev/ttyACM1',
                      ]
         else:
             raise RuntimeError('Do not know default serial ports on your '
@@ -396,16 +398,28 @@ class MyApp:
             return
         t = (t-t[WIDTH])*1000.0
 
+        try:
+            print "accumt",type(accum[0]),len(accum[0]),"0",type(accum[0][0])
+        except IndexError:
+            pass
+
         m0 = self.on_off_canvas.new_data( t, accum[0] ).get('mean',None)
         m1 = self.off_on_canvas.new_data( t, accum[1] ).get('mean',None)
 
         if m0 is None or m1 is None:
             return
 
+        print "m0s",m0.shape
+        print "m1s",m1.shape
+
         # find crossover point where on->off is dimmer than off->on
         cond = m0 < m1
+        print "cs",cond.shape
         try:
             idx = np.nonzero(cond)[0][0]
+
+            print np.nonzero(cond)[0]
+
         except IndexError:
             return
         t_crossover = t[idx]
