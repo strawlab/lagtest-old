@@ -13,10 +13,14 @@ class RingBuffer
 
 public:
     RingBuffer(int size, bool allowOverwrite = false);
+    void unget();
     bool get(T *data);
+    bool get(T* data, int offset);
     bool canGet();
     int put(T* e);
     int getSize() { return this->size; }
+    void reset();
+    int unread();
     static void test();
 
 private:
@@ -46,6 +50,20 @@ RingBuffer<T>::RingBuffer(int size, bool allowOverwrite)
 }
 
 template <class T>
+int RingBuffer<T>::unread()
+{
+    if( w > r )
+        return w - (r+1);
+    else
+        return (this->size-r)+w;
+}
+
+template <class T>
+void RingBuffer<T>::unget(){
+    this->r = (r == 0) ? this->size : r-1;
+}
+
+template <class T>
 bool RingBuffer<T>::get(T* data)
 {
     //qDebug("w=%d, r=%d", w, r);
@@ -59,6 +77,27 @@ bool RingBuffer<T>::get(T* data)
     } else {
         return false;
     }
+}
+
+
+template <class T>
+bool RingBuffer<T>::get(T* data, int offset)
+{
+    //qDebug("w=%d, r=%d", w, r);
+    offset = offset % this->size;
+    int rr = (r-offset)<0?this->size-offset:r-offset;
+    *data = this->data[rr];
+    return true;
+}
+
+//Put read pointer directly before the write pointer. Resetting the ringbuffer.
+//Using get(,OFFSET) can now be used to read the last elements
+template <class T>
+void RingBuffer<T>::reset()
+{
+    int rr;
+    rr = this->w - 1;
+    rr = (rr < 0) ? this->size-1 : rr;
 }
 
 template <class T>
@@ -128,6 +167,19 @@ void RingBuffer<T>::test()
         b = rb.get(&t);
         qDebug("Get: %d = %c ", b, t );
     }
+
+    qDebug("Reverse get test");
+    b = rb.get(&t,0);
+    qDebug("Get(0): %d = %c ", b, t );
+    b = rb.get(&t,1);
+    qDebug("Get(1): %d = %c ", b, t );
+    b = rb.get(&t,2);
+    qDebug("Get(2): %d = %c ", b, t );
+    b = rb.get(&t,3);
+    qDebug("Get(3): %d = %c ", b, t );
+    b = rb.get(&t,4);
+    qDebug("Get(4): %d = %c ", b, t );
+
     return;
     /*
     qDebug("Get: %c ", *(rb.get()) );

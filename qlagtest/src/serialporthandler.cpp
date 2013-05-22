@@ -58,6 +58,7 @@ void SerialPortHandler::onThreadQuit()
 
 void SerialPortHandler::start()
 {
+    qDebug("Starting serial port reader thread ...");
     if(this->thread)
         this->thread->start();
 }

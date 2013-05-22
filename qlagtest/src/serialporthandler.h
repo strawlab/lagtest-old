@@ -12,11 +12,11 @@ class SerialPortHandler : public QObject
     Q_OBJECT
 public:
     explicit SerialPortHandler(QString port, int requestPeriod, TimeModel* tm, RingBuffer<clockPair>* clock_storage, RingBuffer<adcMeasurement>* adc_storage);
-    void start();
+    //void start();
 
 public slots:
     void onThreadQuit();
-
+    void start();
 
 private:
     QTimer* timer;

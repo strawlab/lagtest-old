@@ -32,7 +32,7 @@ our official clock.
 
 // Global variables for ADC ----------------------------------------------------
 const uint8_t log2_n_samples = 4;
-const uint8_t max_n_samples = 0x01 << log2_n_samples;
+const uint8_t max_n_samples = 0x01 << log2_n_samples; //Fuse 2**4=16 sample values
 volatile uint8_t n_samples=0;
 volatile uint16_t accum=0;
 volatile timed_sample_t adc_sample;
@@ -40,6 +40,7 @@ volatile uint8_t new_adc_sample=0;
 
 // Global variable for clock measurement ---------------------------------------
 volatile epoch_dtype epoch=0;
+volatile uint8_t tit = 0;
 
 // Interrupt service routine for new analog sample ready -----------------------
 ISR(ADC_vect)
@@ -47,19 +48,33 @@ ISR(ADC_vect)
 
     accum += ADCH;
     n_samples++;
-
+    
+    if( tit++ % 2){
+          digitalWrite(7, 1);
+        } else {
+          digitalWrite(7, 0);
+        }
+    
     if (n_samples >= max_n_samples) {
-        adc_sample.value = 0x0FF & (accum >> log2_n_samples);
+        adc_sample.value = 0x0FF & (accum >> log2_n_samples); //Make sure the sample value is between [0, 255]
 
         // stamp data with current timestamp
         adc_sample.epoch = epoch;
         adc_sample.ticks = TCNT1;
-
+        
         accum = 0;
         n_samples = 0;
 
         new_adc_sample=1;
+        
+        if( tit++ % 2){
+          digitalWrite(2, 1);
+        } else {
+          digitalWrite(2, 0);
+        }
     }
+    
+    
 
 }
 
@@ -89,7 +104,8 @@ void setup_adc() {
 
     ADMUX = 0;                // use ADC0
     ADMUX |= (1 << REFS0);    // use AVcc as the reference
-    ADMUX |= (1 << ADLAR);    // Right adjust for 8 bit resolution
+    //ADMUX |= (1 << ADLAR);    // Right adjust for 8 bit resolution
+    ADMUX |= (1 << ADLAR);    // Set right adjust -> reading ADCH after convertion will read the higher eight bits only ( i.e dividing the result by 4 )
 
     ADCSRA |= (1 << ADATE);    // Set free running mode
     ADCSRA |= (1 << ADEN);    // Enable the ADC
@@ -105,7 +121,10 @@ void setup() {
 
     pinMode(LEDPin, OUTPUT);
     digitalWrite(LEDPin, 0);
-
+    
+    pinMode(2, OUTPUT);
+    pinMode(7, OUTPUT);
+    
     // start serial port at 115200 bps:
     Serial.begin(115200);
 

@@ -1,6 +1,7 @@
 #ifndef FLASHINGBACKGROUND_H
 #define FLASHINGBACKGROUND_H
 
+#include "timemodel.h"
 #include "openglwindow.h"
 #include <ringbuffer.hpp>
 #include <QTimer>
@@ -12,7 +13,7 @@ class FlashingBackground : public OpenGLWindow
     Q_OBJECT
 
 public:
-    FlashingBackground(int msec, TimeModel* clock, RingBuffer<double>* store);
+    FlashingBackground(int msec, TimeModel* clock, RingBuffer<screenFlip> *store);
 
     //void initialize();
     void render();
@@ -25,7 +26,7 @@ private:
     bool redraw;
     QTimer* timer;
     TimeModel* clock;
-    RingBuffer<double>* store;
+    RingBuffer<screenFlip>* store;
 };
 
 #endif // FLASHINGBACKGROUND_H

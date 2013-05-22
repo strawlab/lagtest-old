@@ -3,7 +3,7 @@
 ** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
-** This file is part of the documentation of the Qt Toolkit.
+** This file is part of the examples of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:BSD$
 ** You may use this file under the terms of the BSD license as follows:
@@ -38,59 +38,41 @@
 **
 ****************************************************************************/
 
-#include <QtGui/QGuiApplication>
-#include <QApplication>
+#ifndef WINDOW_H
+#define WINDOW_H
 
-//#include <QtGui/QMatrix4x4>
-//#include <QtGui/QOpenGLShaderProgram>
-#include <QtGui/QScreen>
+#include <QWidget>
+#include <QKeyEvent>
+#include <QLabel>
 
-#include <QtCore/qmath.h>
-#include "qthread.h"
-
-#include "flashingbackground.h"
 #include "timemodel.h"
 #include "ringbuffer.hpp"
-#include "lagtestserialportcomm.h"
-#include "serialporthandler.h"
-#include "latencymodel.h"
-#include "flashingbgqpaint.h"
 
-#include "window.h"
+class Window : public QWidget
+{
+    Q_OBJECT
 
-int main(int argc, char **argv)
-{    
-    QApplication app(argc, argv);
-    //RingBuffer<char>::test();
-    //return 1;
+public:
+    enum drawingType{ QPAINT, OPENGL };
+    Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips);
 
-    TimeModel tm;
-    //tm.testModelGenerator();
+signals:
+    void startMeassurement();
+    void stopMeassurement();
+    void doReset();
 
-    RingBuffer<screenFlip> screenFlips(100);
-    RingBuffer<clockPair> adruinoClock(100);
-    RingBuffer<adcMeasurement> adcValues(2000);
+public slots:
+    void receiveUnstableLatency();
+    void receiveStableLatency(double latency);
+    void receiveInvalidLatency();
 
-    qDebug("Creating handler for serial port ...");
-    // Setup Serial Port Reader
-    SerialPortHandler serial("Com11", 500, &tm, &adruinoClock, &adcValues);
-    LatencyModel lm = LatencyModel(800, &tm, &screenFlips, &adruinoClock, &adcValues);
+protected:
+    void keyPressEvent(QKeyEvent *event);
+    QLabel* msg;
+    QLabel* latency;
 
-    Window w(Window::QPAINT, &tm, &screenFlips);
+private:    
+};
+//! [0]
 
-    QObject::connect( &w, SIGNAL(doReset()), &lm, SLOT(reset()) );
-    QObject::connect( &w, SIGNAL(startMeassurement()), &serial, SLOT(start()) );
-    QObject::connect( &w, SIGNAL(startMeassurement()), &lm, SLOT(start()) );
-
-
-    QObject::connect( &lm, SIGNAL(signalStableLatency(double)), &w, SLOT(receiveStableLatency(double)) );
-    QObject::connect( &lm, SIGNAL(signalUnstableLatency()), &w, SLOT(receiveUnstableLatency()) );
-    QObject::connect( &lm, SIGNAL(signalInvalidLatency()), &w, SLOT(receiveInvalidLatency()) );
-
-    w.show();
-
-    return app.exec();
-}
-
-
-
+#endif

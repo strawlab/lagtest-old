@@ -45,6 +45,7 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLPaintDevice>
 #include <QtGui/QPainter>
+#include <QWindow>
 
 //! [1]
 OpenGLWindow::OpenGLWindow(QWindow *parent)

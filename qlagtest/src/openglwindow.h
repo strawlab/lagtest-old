@@ -42,6 +42,7 @@
 #define OPENGLWINDOWCLASS
 
 #include <QtGui/QWindow>
+//#include <QWidget>
 #include <QtGui/QOpenGLFunctions>
 
 QT_BEGIN_NAMESPACE
