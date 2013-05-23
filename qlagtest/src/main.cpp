@@ -69,14 +69,15 @@ int main(int argc, char **argv)
 
     RingBuffer<screenFlip> screenFlips(100);
     RingBuffer<clockPair> adruinoClock(100);
-    RingBuffer<adcMeasurement> adcValues(2000);
+    RingBuffer<adcMeasurement> adcValues(5000);
 
     qDebug("Creating handler for serial port ...");
     // Setup Serial Port Reader
     SerialPortHandler serial("Com11", 500, &tm, &adruinoClock, &adcValues);
-    LatencyModel lm = LatencyModel(800, &tm, &screenFlips, &adruinoClock, &adcValues);
+    LatencyModel lm(800, &tm, &screenFlips, &adruinoClock, &adcValues);
 
-    Window w(Window::QPAINT, &tm, &screenFlips);
+//    Window w(Window::QPAINT, &tm, &screenFlips);
+    Window w(&tm, &screenFlips);
 
     QObject::connect( &w, SIGNAL(doReset()), &lm, SLOT(reset()) );
     QObject::connect( &w, SIGNAL(startMeassurement()), &serial, SLOT(start()) );

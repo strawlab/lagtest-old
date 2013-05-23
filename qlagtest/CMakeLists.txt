@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9) # Starting with 2.8.9 there is Ninja support for windows
+cmake_minimum_required(VERSION 2.8.9)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}" )
 
 PROJECT(lagtest)
@@ -8,8 +8,8 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
     # WINDOWS: Choose dynamic or static qt libraries
     # set( QT5_DYNAMIC_INST "C:/Projects/QT/5.0.2/msvc2012_64/lib" )
-    set( QT5_DYNAMIC_INST "C:/Projects/qt5_msvc2010/5.0.2/msvc2010_opengl/lib" )
-    set( QT5_STATIC_INST "C:/Users/pasieka/Projects/qt5/qtbase/lib" )
+    set( QT5_DYNAMIC_INST "C:/Projects/qt5_msvc2010/5.0.2/msvc2010_opengl" )
+    set( QT5_STATIC_INST "C:/Users/pasieka/Projects/qt5/qtbase" )
     set( QT5_INST ${QT5_DYNAMIC_INST} )
 
     # WINDOWS: set path to cmake find modules
@@ -24,6 +24,15 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     message( "=== Detected Linux build ===")
+
+    # Define QT5 installation
+    set( QT5_INST "/opt/Qt5.0.2/5.0.2/gcc_64" )
+
+    #set path to cmake find modules
+    set(CMAKE_PREFIX_PATH ${QT5_INST} )
+    set(CMAKE_MODULE_PATH "${QT5_INST}/cmake;${CMAKE_MODULE_PATH}" )
+
+    find_package(Eigen3 REQUIRED )
 
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -40,8 +49,6 @@ set( CMAKE_AUTOMOC ON ) # http://blogs.kde.org/2011/11/01/cool-new-stuff-cmake-2
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(Qt5SerialPort REQUIRED)
-#find_package(Eigen3 REQUIRED ) //Using the Find script fails! Workaround: set EIGEN3_INCLUDE_DIR directly
 
 #add_definitions(-DUSE_IPP)
 
@@ -59,19 +66,21 @@ set( CMAKE_FIND_LIBRARY_SUFFIXES ".lib" )
 set (RRJ_SOURCES    "src/timemodel.cpp"
                     "src/openglwindow.cpp"
                     "src/flashingbackground.cpp"
+		    "src/flashingbgqpaint.cpp"
                     "src/rs232.cpp"
                     "src/lagtestserialportcomm.cpp"
                     "src/serialporthandler.cpp"
                     "src/latencymodel.cpp"
+		    "src/window.cpp" 
                     "src/main.cpp"
                                         )
 set (PRJ_INCLUDE "src"
 )
 
 add_executable(lagtest ${RRJ_SOURCES})
-include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${Qt5SerialPort_INCLUDE_DIRS})
+include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR})
 
-qt5_use_modules(lagtest Widgets OpenGL SerialPort)
+qt5_use_modules(lagtest Widgets OpenGL )
 #target_link_libraries(lagtest  ${LIBRARIES} ${QT_LIBRARIES} ${OPENGL_LIBRARIES} )
 target_link_libraries(lagtest  ${OPENGL_LIBRARIES} )
 #CMAKE_EXE_LINKER_FLAGS ( -static )

@@ -54,7 +54,8 @@ class Window : public QWidget
 
 public:
     enum drawingType{ QPAINT, OPENGL };
-    Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips);
+    //explicit Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips);
+	explicit Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips);
 
 signals:
     void startMeassurement();
@@ -67,7 +68,7 @@ public slots:
     void receiveInvalidLatency();
 
 protected:
-    void keyPressEvent(QKeyEvent *event);
+    virtual void keyPressEvent(QKeyEvent *event);
     QLabel* msg;
     QLabel* latency;
 

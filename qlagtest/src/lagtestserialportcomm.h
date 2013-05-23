@@ -6,8 +6,6 @@
 
 #include "timemodel.h"
 #include "ringbuffer.hpp"
-#include <QtSerialPort/QSerialPort>
-#include <QtSerialPort/QSerialPortInfo>
 #include <QString>
 
 // lagtest\firmware\lagtestino\lagtest_dataypes.h
@@ -55,7 +53,6 @@ private:
     // Serial Port Config
     QString port;
     int bautRate;
-    QSerialPort* serial;
     int portN;
 
 };

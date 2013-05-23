@@ -51,10 +51,11 @@
 
 
 
-Window::Window(drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
+//Window::Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
+Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
 {
     QWidget* flipWindow;
-
+	enum drawingType drawing = Window::QPAINT;
     setWindowTitle("Lagtest - How fast is your display");
     this->resize(640, 480);
 

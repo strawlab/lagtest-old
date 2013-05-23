@@ -11,7 +11,7 @@ class LatencyModel : public QObject
 {
      Q_OBJECT
 public:
-    LatencyModel(int ms_updateRate, TimeModel* tm, RingBuffer<screenFlip>* screenFlips, RingBuffer<clockPair>* clock_storage, RingBuffer<adcMeasurement>* adc_storage);
+    explicit LatencyModel(int ms_updateRate, TimeModel* tm, RingBuffer<screenFlip>* screenFlips, RingBuffer<clockPair>* clock_storage, RingBuffer<adcMeasurement>* adc_storage);
     void resetHistory();
 
 public slots:
@@ -31,7 +31,7 @@ private:
     bool isStable(double *stableResult = 0);
     bool detectdisplacedSensor();
 
-    QTimer timer;
+    QTimer* timer;
     TimeModel* tm;
     RingBuffer<clockPair>* clock;
     RingBuffer<adcMeasurement>* adc;

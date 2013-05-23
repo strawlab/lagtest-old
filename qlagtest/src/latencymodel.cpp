@@ -2,13 +2,15 @@
 #include <limits>
 
 LatencyModel::LatencyModel(int ms_updateRate, TimeModel *tm, RingBuffer<screenFlip> *screenFlips, RingBuffer<clockPair> *clock_storage, RingBuffer<adcMeasurement> *adc_storage)
-    : tm(tm), screenFlips(screenFlips), clock(clock_storage), adc(adc_storage),
+    : QObject(0),
+	tm(tm), screenFlips(screenFlips), clock(clock_storage), adc(adc_storage),
       timer(0),
       latencyCnt(0), flipCnt(0)
 {
     // Setup period update of the model
-    connect(&(this->timer), SIGNAL(timeout()), this, SLOT( update() ));    
-    this->timer.setInterval(ms_updateRate);
+	this->timer = new QTimer();
+    connect( timer, SIGNAL(timeout()), this, SLOT( update() ));    
+    this->timer->setInterval(ms_updateRate);
 }
 
 void LatencyModel::start()
@@ -23,7 +25,7 @@ void LatencyModel::realStart()
 {
     qDebug("Starting latency model ...");
     this->resetHistory();
-    this->timer.start();
+    this->timer->start();
 }
 
 void LatencyModel::resetHistory()
