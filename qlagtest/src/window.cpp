@@ -60,7 +60,7 @@ Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
     this->resize(640, 480);
 
     QVBoxLayout *layout = new QVBoxLayout;
-    this->msg = new QLabel("Put the light sensor ontop of the black area. When ready press the space bar.");
+    this->msg = new QLabel("Put the light sensor ontop of the white area. When ready press the space bar.");
     this->latency = new QLabel("");
 
     msg->setAlignment(Qt::AlignHCenter);

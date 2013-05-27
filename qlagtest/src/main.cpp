@@ -119,9 +119,34 @@ QString getAdruinoPort()
     return combo.currentText();
 }
 
+int programArduino(QString avrDudePath, QString pathToFirmware)
+{
+    qDebug("Trying to flash adruino ...");
+    QString port = getAdruinoPort();
+    char buffer[300];
+
+    sprintf(buffer, "-F -v -pm328p -c arduino -b 115200 -P\\\\.\\%s -D -Uflash:w:%s:i", port.toStdString().c_str(), pathToFirmware.toStdString().c_str() );
+
+    QString param(QString::fromLocal8Bit(buffer));
+    qDebug("Calling %s with %s" , avrDudePath.toStdString().c_str(), param.toStdString().c_str() );
+    QProcess process;
+    int ret = process.execute (avrDudePath, param.split(" "));
+    //process.waitForFinished(10000);
+    QByteArray out = process.readAllStandardOutput();
+    qDebug("Output %s" ,  out.data() );
+    qDebug("Exit code %d", process.exitCode() );
+    return process.exitCode();
+}
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
+
+//#define FLASH
+#ifdef FLASH
+    programArduino( QString::fromLocal8Bit(argv[1]), QString::fromLocal8Bit(argv[2]) );
+    exit(0);
+#else
     //RingBuffer<char>::test();
     //return 1;
 
@@ -153,7 +178,7 @@ int main(int argc, char **argv)
     QObject::connect( &lm, SIGNAL(signalInvalidLatency()), &w, SLOT(receiveInvalidLatency()) );
 
     w.show();
-
+#endif
     return app.exec();
 }
 
