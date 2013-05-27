@@ -56,10 +56,71 @@
 #include "latencymodel.h"
 #include "flashingbgqpaint.h"
 
+#include <QComboBox>
+#include <QMainWindow>
+#include <QEventLoop>
+#include <QVBoxLayout>
+
 #include "window.h"
+#include "rs232.h"
+
+std::vector<QString> discoverComPorts()
+{
+    std::vector<int> ports;
+    std::vector<QString> portsNames;
+    char cbuffer[10];
+
+    qDebug("Discovering Serial Ports ...");
+
+    for(int i = 5; i < 16; i++){    //Only search for ports between COM6-COM16
+        if( !RS232_OpenComport(i, 9600) ){
+            ports.push_back(i);
+            RS232_CloseComport( i );
+        }
+    }
+
+    #ifdef __linux__
+    assert(0 && "No linux implementation");
+    #else
+        for(std::vector<int>::iterator it = ports.begin(); it != ports.end(); ++it) {
+            sprintf(cbuffer, "COM%d", (*it)+1);
+            portsNames.push_back( QString( cbuffer ) );
+        }
+    #endif
+
+    return portsNames;
+}
+
+QString getAdruinoPort()
+{
+    //Create a simple QWidget that contains a dropdown list of all serial ports
+    QWidget mainWindow;
+    QComboBox combo;
+    QVBoxLayout layout;
+    QEventLoop loop;
+    QLabel PortSelectMsg("Select the port adruino is connected to");
+
+    PortSelectMsg.setAlignment(Qt::AlignHCenter);
+    layout.addWidget( &PortSelectMsg, 0 );
+    layout.addWidget( &combo, 0 );
+    mainWindow.setLayout( &layout );
+
+    std::vector<QString> ports = discoverComPorts();
+    for(std::vector<QString>::iterator it = ports.begin(); it != ports.end(); ++it) {
+        //qDebug("Found Port %s" , (*it).toStdString().c_str() );
+        combo.addItem(*it);
+    }
+    QObject::connect(&combo, SIGNAL(activated(QString)), &loop, SLOT( quit() ));
+
+    mainWindow.show();
+    loop.exec();    //Wait till the user selects an entry
+    mainWindow.close();
+
+    return combo.currentText();
+}
 
 int main(int argc, char **argv)
-{    
+{
     QApplication app(argc, argv);
     //RingBuffer<char>::test();
     //return 1;
@@ -71,9 +132,12 @@ int main(int argc, char **argv)
     RingBuffer<clockPair> adruinoClock(100);
     RingBuffer<adcMeasurement> adcValues(5000);
 
+    //Make user define the serial port
+    QString port = getAdruinoPort();
+
     qDebug("Creating handler for serial port ...");
-    // Setup Serial Port Reader
-    SerialPortHandler serial("Com11", 500, &tm, &adruinoClock, &adcValues);
+    // Setup Serial Port Reader    
+    SerialPortHandler serial(port, 500, &tm, &adruinoClock, &adcValues);
     LatencyModel lm(800, &tm, &screenFlips, &adruinoClock, &adcValues);
 
 //    Window w(Window::QPAINT, &tm, &screenFlips);
@@ -92,6 +156,8 @@ int main(int argc, char **argv)
 
     return app.exec();
 }
+
+
 
 
 

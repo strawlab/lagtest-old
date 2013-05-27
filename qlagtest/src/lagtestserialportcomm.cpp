@@ -19,12 +19,31 @@ LagTestSerialPortComm::LagTestSerialPortComm(QString port, int bautRate,TimeMode
     port(port),
     tR(0)
 {    
-    this->portN = 0;
-    if( this->port.length() < 4){
-        qCritical("Invalid Com port [%s]!", this->port.toStdString().c_str() );
+    this->portN = this->getPortIdx(port);
+    if( portN < 0)
+    {
+        qCritical("Invalid Com port [%s]!", port.toStdString().c_str() );
         throw std::exception();
     }
-    portN = this->port.right(port.length()-3).toInt() - 1; //From Com11 , extract 11, convert it to int, rs232 starts counting from 0.
+
+}
+
+int LagTestSerialPortComm::getPortIdx(QString portName)
+{
+    int idx = -1;
+    if( portName.length() >= 4)
+    {
+        if( portName.contains("Com", Qt::CaseInsensitive)){
+            //qDebug("Detect COMXX");
+            idx = this->port.right(port.length()-3).toInt() - 1; //From Com11 , extract 11, convert it to int, rs232 starts counting from 0.
+        } else if( portName.contains("USB", Qt::CaseInsensitive) ){
+            //qDebug("Detect USBXX");
+            idx = this->port.right(port.length()-3).toInt() + 16; //From USB0 , extract 0, convert it to int, rs232 starts counting from 16.
+        } else {
+            qWarning("Invalid port name!");
+        }
+    }
+    return idx;
 }
 
 void LagTestSerialPortComm::initSerialPort()

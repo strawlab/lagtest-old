@@ -35,6 +35,7 @@ public slots:
 private:
     bool readFrame(uint8_t *buffer, timed_sample_t* frame);
     void initSerialPort();
+    int getPortIdx(QString portName);
 
     int write(unsigned char *data, int size);
     int read(unsigned char *buffer, int max_size);
