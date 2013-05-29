@@ -95,12 +95,13 @@ void LatencyModel::update()
     }      
 
     if( latency != -1.0 )
-    {
+    {        
         if( this->isStable(&this->lastLatency) ){
             emit signalStableLatency(this->lastLatency);
         } else {
             emit signalUnstableLatency();
         }
+        emit signalUpdate(this);
     }
 }
 
@@ -176,7 +177,6 @@ double LatencyModel::calculateLatency()
     } else {
         latency = this->sampleTimes[idx];
     }
-
 
     return latency;
 }
@@ -254,6 +254,7 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
             }
 
         }
+        emit signalNewMeassurementWindow(this->adcData[sf.type][this->measurementCnter[sf.type]], this->sampleTimes, sf.type);
     }
 
 //    char buffer[10000];

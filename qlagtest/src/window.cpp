@@ -49,10 +49,15 @@
 #include "flashingbgqpaint.h"
 #include "flashingbackground.h"
 
+#include <qwt_plot.h>
+#include <qwt_plot_curve.h>
+#include <qwt_point_data.h>
 
+#include "latencymodel.h"
 
 //Window::Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
-Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
+Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips) :
+    showPlot(false), updateCurveIdx(0)
 {
     QWidget* flipWindow;
 	enum drawingType drawing = Window::QPAINT;
@@ -103,6 +108,66 @@ Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
 //        layout->addWidget(label, 0);
     }
 
+
+    this->xData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize );
+    this->yData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize);
+//    this->yData = (double**) malloc(sizeof(double*) * LatencyModel::measurementHistoryLength);
+//    for(int i=0; i < LatencyModel::measurementHistoryLength; i++){
+//        yData[i] = (double*) malloc(sizeof(double)* LatencyModel::measurementWindowSize );
+//    }
+
+    this->plot = new SubWindow(this);
+    QVBoxLayout *plotLayout = new QVBoxLayout;
+
+    this->cPlots[BLACK_TO_WHITE] = new QwtPlot( QwtText("Black to White") );
+    this->cPlots[WHITE_TO_BLACK] = new QwtPlot( QwtText("White to Black") );
+
+    cPlots[BLACK_TO_WHITE]->setCanvasBackground(QBrush(Qt::white));
+    cPlots[WHITE_TO_BLACK]->setCanvasBackground(QBrush(Qt::white));
+
+    this->nCurves = LatencyModel::measurementHistoryLength;
+//    this->curves[BLACK_TO_WHITE] = (QwtPlotCurve*) malloc (sizeof(QwtPlotCurve*) * nCurves);
+//    this->curves[WHITE_TO_BLACK] = (QwtPlotCurve*) malloc (sizeof(QwtPlotCurve*) * nCurves);
+
+    int colors[] = { Qt::red, Qt::blue, Qt::yellow, Qt::green, Qt::gray, Qt::darkGray, Qt::darkBlue, };
+    int nColors = sizeof(colors);
+
+    QPen p;
+    p.setWidth( 1 );
+
+    for(int i=0; i < nCurves; i++)
+    {
+        p.setColor( QColor( (Qt::GlobalColor) colors[i%nColors] ) );
+
+        curves[BLACK_TO_WHITE].push_back( new QwtPlotCurve() );
+        curves[WHITE_TO_BLACK].push_back( new QwtPlotCurve() );
+
+        curves[BLACK_TO_WHITE][i]->setPen( p );
+        curves[WHITE_TO_BLACK][i]->setPen( p );
+
+        double x[] = { 0.0, 10.0, 20.0 };
+        double y[] = { 0.0, 0.0, 0.0 };
+        QwtPointArrayData *data = new QwtPointArrayData(x, y, 3);
+
+        curves[BLACK_TO_WHITE][i]->setData( data );
+        curves[WHITE_TO_BLACK][i]->setData( data );
+
+        curves[BLACK_TO_WHITE][i]->attach( cPlots[BLACK_TO_WHITE] );
+        curves[WHITE_TO_BLACK][i]->attach( cPlots[WHITE_TO_BLACK] );
+    }
+
+    plotLayout->addWidget( cPlots[BLACK_TO_WHITE] );
+    plotLayout->addWidget( cPlots[WHITE_TO_BLACK] );
+
+    plot->setLayout( plotLayout );
+
+    if( this->showPlot ) {
+        this->plot->show();
+    } else {
+        this->plot->hide();
+    }
+    showPlot = !showPlot;
+
     this->setLayout(layout);
 }
 
@@ -115,6 +180,17 @@ void Window::keyPressEvent(QKeyEvent *event)
                 this->msg->setText( "Remain still. Calculating Latency ..." );
                 emit startMeassurement();
                 emit doReset();
+            break;
+        }
+    case Qt::Key_D:{
+            if( this->showPlot ) {
+                this->plot->show();
+            } else {
+                this->plot->hide();
+            }
+            this->raise();
+            this->setFocus();
+            showPlot = !showPlot;
             break;
         }
     case Qt::Key_Q:{
@@ -142,3 +218,62 @@ void Window::receiveStableLatency(double latency)
     this->msg->setText( "Found a Latency of" );
     this->latency->setText( str.sprintf("%.2f ms", latency/1000000) );
 }
+
+void Window::receiveNewMeassurementWindow(uint8_t* window, double *time, flip_type type)
+{
+    qDebug("Updateing curve");
+    for(int j=0; j < LatencyModel::measurementWindowSize; j++){
+        this->yData[j] = window[j];
+    }
+    yData[0] = 1.0;
+    yData[1] = 10.0;
+    yData[2] = 100.0;
+    //QwtPointArrayData* d = new QwtPointArrayData( time, yData, LatencyModel::measurementWindowSize);
+    QwtPointArrayData* d = new QwtPointArrayData( time, yData, 3);
+    updateCurveIdx = (updateCurveIdx+1)%nCurves;
+    this->curves[type][this->updateCurveIdx]->setData( d );
+    this->cPlots[type]->replot();
+}
+
+void Window::receiveLatencyUpdate(LatencyModel* lm)
+{
+    /*
+    memcpy( this->xData, lm->getSampleTimes(), sizeof(double)*LatencyModel::measurementWindowSize);
+
+    return;
+    //Only update curves if plot is visible
+    if( this->showPlot )
+        return;
+
+    qDebug("Updating plots");
+
+    memcpy( this->xData, lm->getSampleTimes(), sizeof(double)*LatencyModel::measurementWindowSize);
+
+
+    LatencyModel::adcWindow* adc;
+    //uint8_t adcData[2][measurementHistoryLength][measurementWindowSize];
+    adc = lm->getAdcData();
+
+    for(int i=0; i < this->nCurves; i++)
+    {
+        for(int j=0; j < LatencyModel::measurementWindowSize; j++){
+            this->yData[i][j] = (*adc)[BLACK_TO_WHITE][i][j];
+        }
+        QwtPointArrayData* d = new QwtPointArrayData( xData, yData[i], LatencyModel::measurementWindowSize);
+        this->curves[BLACK_TO_WHITE][i]->setData( d );
+    }
+    this->cPlots[BLACK_TO_WHITE]->replot();
+
+    for(int i=0; i < this->nCurves; i++)
+    {
+        for(int j=0; j < LatencyModel::measurementWindowSize; j++){
+            this->yData[i][j] = (*adc)[WHITE_TO_BLACK][i][j];
+        }
+        QwtPointArrayData* d = new QwtPointArrayData( xData, yData[i], LatencyModel::measurementWindowSize);
+        this->curves[WHITE_TO_BLACK][i]->setData( d );
+    }
+    this->cPlots[WHITE_TO_BLACK]->replot();
+    */
+}
+
+SubWindow::SubWindow(QWidget* parent) : QWidget( parent , Qt::Window ) {}

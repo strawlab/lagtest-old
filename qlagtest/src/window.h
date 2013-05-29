@@ -47,6 +47,11 @@
 
 #include "timemodel.h"
 #include "ringbuffer.hpp"
+#include <vector>
+
+class QwtPlot;
+class QwtPlotCurve;
+class LatencyModel;
 
 class Window : public QWidget
 {
@@ -66,14 +71,37 @@ public slots:
     void receiveUnstableLatency();
     void receiveStableLatency(double latency);
     void receiveInvalidLatency();
+    void receiveLatencyUpdate(LatencyModel *lm);
+    void receiveNewMeassurementWindow(uint8_t* window, double* time, flip_type type);
 
 protected:
     virtual void keyPressEvent(QKeyEvent *event);
     QLabel* msg;
     QLabel* latency;
+    //QwtPlot* plot[2];
+
+    int nCurves;
+    int updateCurveIdx;
+    QWidget* plot;
+    std::vector<QwtPlotCurve*> curves[2];
+    QwtPlot* cPlots[2];
+    bool showPlot;
+
+    double* xData;
+    double* yData;
 
 private:    
 };
+
+// Simple QWidget extention that fowards all keyboard events to its parent
+class SubWindow : public QWidget{
+    Q_OBJECT
+public:
+    explicit SubWindow(QWidget* parent = NULL);
+protected:
+    virtual void keyPressEvent(QKeyEvent *event) { this->parent()->event(event); }
+};
+
 //! [0]
 
 #endif

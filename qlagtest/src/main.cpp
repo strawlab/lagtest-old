@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     SerialPortHandler serial(port, 500, &tm, &adruinoClock, &adcValues);
     LatencyModel lm(800, &tm, &screenFlips, &adruinoClock, &adcValues);
 
-//    Window w(Window::QPAINT, &tm, &screenFlips);
+    qDebug("Creating main window ...");
     Window w(&tm, &screenFlips);
 
     QObject::connect( &w, SIGNAL(doReset()), &lm, SLOT(reset()) );
@@ -176,6 +176,8 @@ int main(int argc, char **argv)
     QObject::connect( &lm, SIGNAL(signalStableLatency(double)), &w, SLOT(receiveStableLatency(double)) );
     QObject::connect( &lm, SIGNAL(signalUnstableLatency()), &w, SLOT(receiveUnstableLatency()) );
     QObject::connect( &lm, SIGNAL(signalInvalidLatency()), &w, SLOT(receiveInvalidLatency()) );
+    QObject::connect( &lm, SIGNAL(signalUpdate(LatencyModel*)), &w, SLOT(receiveLatencyUpdate(LatencyModel*)) );
+    QObject::connect( &lm, SIGNAL(signalNewMeassurementWindow(uint8_t*,double*,flip_type)), &w, SLOT(receiveNewMeassurementWindow(uint8_t*,double*,flip_type)) );
 
     w.show();
 #endif

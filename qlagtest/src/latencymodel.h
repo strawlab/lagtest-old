@@ -14,16 +14,32 @@ public:
     explicit LatencyModel(int ms_updateRate, TimeModel* tm, RingBuffer<screenFlip>* screenFlips, RingBuffer<clockPair>* clock_storage, RingBuffer<adcMeasurement>* adc_storage);
     void resetHistory();
 
+    const static int latencyHistorySize = 5;
+    const static int latencyStableSize = 3;
+    const static int flipHistorySize = 5;
+    const static int measurementWindowSize = 100; //Take 100 adc samples before and after the screen flip
+    const static int measurementHistoryLength = 5; //Keep the last 10 measurement windows and do averaging over them
+
+    typedef uint8_t adcWindow[2][measurementHistoryLength][measurementWindowSize];
+
+    double* getSampleTimes() { return sampleTimes; }
+    adcWindow* getAdcData(){ return &adcData; }
+
+
+
 public slots:
     void update();
     void reset();
     void start();
     void realStart();
 
+
 signals:
     void signalStableLatency(double latency);
     void signalUnstableLatency();
     void signalInvalidLatency();
+    void signalUpdate(LatencyModel* lm);
+    void signalNewMeassurementWindow(uint8_t* window, double* time, flip_type type);
 
 private:
     bool findFlipp(adcMeasurement *flip, screenFlip sf);
@@ -39,20 +55,15 @@ private:
 
     double lastLatency;
 
-    const static int latencyHistorySize = 5;
     int latencyCnt;
     double latency[latencyHistorySize];
-    const static int latencyStableSize = 3;
 
-    const static int flipHistorySize = 5;
     int flipCnt;
     screenFlip flips[flipHistorySize];
 
-    const static int measurementWindowSize = 100; //Take 100 adc samples before and after the screen flip
-    const static int measurementHistoryLength = 5; //Keep the last 10 measurement windows and do averaging over them
-
     int measurementCnter[2];
-    uint8_t adcData[2][measurementHistoryLength][measurementWindowSize];
+    //uint8_t adcData[2][measurementHistoryLength][measurementWindowSize];
+    adcWindow adcData;
     double sampleTimes[measurementWindowSize];
     long nMeasurements[2];
 };
