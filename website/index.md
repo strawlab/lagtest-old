@@ -60,6 +60,7 @@ and you have your latency estimate.
 [Response Time Measurement](http://www.tftcentral.co.uk/articles/response_time.htm)
 [An investigation of the test process used to date for determining the response time of an LCD monitor, known as input lag](http://www.prad.de/en/monitore/specials/inputlag/inputlag.html)
 [Input Lag Testing](http://www.tftcentral.co.uk/articles/input_lag.htm)
+A somewhat insane [method of reducing lag on one particular TV](http://www.youtube.com/watch?v=h2O5wvJTtdo)
 
 ### Credits
 

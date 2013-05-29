@@ -106,4 +106,32 @@ if 1:
         ax1.set_ylabel( 'luminance (DAC units)')
         ax2.set_xlim( (-20,150))
 
+    if 1:
+
+        WIDTH = 100
+        accum = {0:[], 1:[]}
+        for switch_row in data['switches']:
+            time_host, value = switch_row
+            time_arduino = time_model.timestamp2framestamp(time_host)
+
+            idx = np.argmin(abs(data['adcs']['time_ino']-time_arduino))
+            idx_start = idx-WIDTH
+            idx_stop = idx+WIDTH
+            if idx_start < 0:
+                continue
+            if idx_stop >= len(data['adcs']):
+                continue
+            accum[ value ].append( data['adcs']['adc'][idx_start:idx_stop] )
+
+            t = time_model.framestamp2timestamp(
+                data['adcs']['time_ino'][idx_start:idx_stop])
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(2,1,1)
+        for data in accum[0]:
+            ax1.plot( t, data, alpha=0.4 )
+        ax2 = fig.add_subplot(2,1,2)
+        for data in accum[1]:
+            ax2.plot( t, data, alpha=0.4 )
+
     plt.show()
