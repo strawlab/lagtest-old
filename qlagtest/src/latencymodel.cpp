@@ -7,6 +7,7 @@ LatencyModel::LatencyModel(int ms_updateRate, TimeModel *tm, RingBuffer<screenFl
       timer(0),
       latencyCnt(0), flipCnt(0)
 {
+    qDebug("Creating LatencyModel ...");
     // Setup period update of the model
 	this->timer = new QTimer();
     connect( timer, SIGNAL(timeout()), this, SLOT( update() ));    
@@ -32,9 +33,12 @@ void LatencyModel::resetHistory()
 {
     qDebug("Reseting Latency Model History ...");
     //Initialize latency history
-    for( int i=0; i < LatencyModel::latencyHistorySize; i++)
-    {
+    for( int i=0; i < LatencyModel::latencyHistorySize; i++)  {
         this->latency[i] = -1.0;
+    }
+
+    for( int i=0; i < LatencyModel::measurementHistoryLength; i++)
+    {
         for( int j=0; j < measurementWindowSize; j++ )
         {
             this->adcData[WHITE_TO_BLACK][i][j] = -1;
@@ -42,9 +46,6 @@ void LatencyModel::resetHistory()
         }
     }
 
-    for( int i=0; i < latencyHistorySize; i++){
-        this->latency[i] = -1.0;
-    }
 
     this->measurementCnter[BLACK_TO_WHITE] = 0;
     this->measurementCnter[WHITE_TO_BLACK] = 0;
@@ -52,6 +53,9 @@ void LatencyModel::resetHistory()
     this->nMeasurements[WHITE_TO_BLACK] = 0;
 
     this->lastLatency = -1.0;
+    this->avgLatency = -1.0;
+    this->avgLatencySD = 0.0;
+    this->allLatencies.clear();
 }
 
 void LatencyModel::reset()
@@ -84,8 +88,7 @@ void LatencyModel::update()
             latency = this->calculateLatency( );
             qDebug("Latency [%g]", latency);
 
-            this->latency[this->latencyCnt] = latency;
-            latencyCnt = (latencyCnt+1) % latencyHistorySize;
+            this->addLatency( latency );
             flipCnt = (flipCnt+1) % flipHistorySize;
         } else {
             //Leave this flip for the next time arround
@@ -96,13 +99,39 @@ void LatencyModel::update()
 
     if( latency != -1.0 )
     {        
-        if( this->isStable(&this->lastLatency) ){
-            emit signalStableLatency(this->lastLatency);
+        if( this->isStable( this->latencyStableSize ) ){
+            emit signalStableLatency();
         } else {
             emit signalUnstableLatency();
         }
         emit signalUpdate(this);
     }
+}
+
+void LatencyModel::addLatency(double newLatency)
+{
+    double t;
+    latencyCnt = (latencyCnt+1) % latencyHistorySize;
+    this->latency[this->latencyCnt] = newLatency;
+
+    if( ( this->nMeasurements[BLACK_TO_WHITE]+this->nMeasurements[WHITE_TO_BLACK]) < latencyHistorySize )
+        return;
+
+    this->lastLatency = newLatency;
+    t = 0;
+    for(int i=0; i < latencyHistorySize; i++){
+        t += latency[i];
+    }
+    this->avgLatency = t / latencyHistorySize;
+
+    t = 0;
+    for(int i=0; i < latencyHistorySize; i++){
+        t += sqrt( (latency[i]-avgLatency) * (latency[i]-avgLatency) );
+    }
+
+    this->avgLatencySD = t / latencyHistorySize;
+
+    this->allLatencies.push_back( newLatency );
 }
 
 double LatencyModel::calculateLatency()
@@ -254,7 +283,9 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
             }
 
         }
-        emit signalNewMeassurementWindow(this->adcData[sf.type][this->measurementCnter[sf.type]], this->sampleTimes, sf.type);
+        if( nMeasurements[sf.type] > measurementHistoryLength ){
+            emit signalNewMeassurementWindow(this->adcData[sf.type][this->measurementCnter[sf.type]], this->sampleTimes, sf.type);
+        }
     }
 
 //    char buffer[10000];
@@ -268,7 +299,7 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
     return found;
 }
 
-bool LatencyModel::isStable(double* stableResult)
+bool LatencyModel::isStable(int stablePeriod)
 {
     double diff;
     double t;
@@ -281,7 +312,7 @@ bool LatencyModel::isStable(double* stableResult)
     mean = 0;
     prev = this->latencyCnt;
     isStable = true;
-    for(int i = 0; i < latencyStableSize; i++)
+    for(int i = 0; i < stablePeriod; i++)
     {
         prev = (prev == 0) ? latencyHistorySize-1 : prev-1 ;
         t = this->latency[prev];
@@ -298,10 +329,6 @@ bool LatencyModel::isStable(double* stableResult)
         } else {
             mean = t;
         }
-    }
-
-    if(isStable && stableResult){
-        *stableResult = mean;
     }
 
     return isStable;

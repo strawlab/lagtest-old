@@ -3,6 +3,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}" )
 
 PROJECT(lagtest)
 
+# This needs to be set to release in order to use qwt library
+# If debug, qwtd has to be linked
+SET(CMAKE_BUILD_TYPE Release )
+
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     message( "=== Detected Windows build ===")
 
@@ -19,6 +23,10 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
     # WINDOWS: cant use Eigen3 cmake search script, specify path directly.
     set(EIGEN3_INCLUDE_DIR "C:/Projects/eigen3")
+
+    # qwt plotting library
+    set( QWT_INC_PATH "C:/Projects/qwt/src")
+    find_library( QWT_LIBRARY NAMES qwt PATHS "C:/Projects/qwt/lib" )
 
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
@@ -50,12 +58,13 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(OpenGL REQUIRED)
 
-#add_definitions(-DUSE_IPP)
+# Needed define by Qwt
+add_definitions(-DQWT_DLL)
 
 set( CMAKE_VERBOSE_MAKEFILE on )
 
 #set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+set( EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin )
 set( CMAKE_FIND_LIBRARY_SUFFIXES ".lib" )
 #enable_testing()
 #find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
@@ -63,27 +72,23 @@ set( CMAKE_FIND_LIBRARY_SUFFIXES ".lib" )
 
 # ============ Main Source files ============== #
 
-set (RRJ_SOURCES    "src/timemodel.cpp"
-                    "src/openglwindow.cpp"
-                    "src/flashingbackground.cpp"
-		    "src/flashingbgqpaint.cpp"
-                    "src/rs232.cpp"
-                    "src/lagtestserialportcomm.cpp"
+set (RRJ_SOURCES    "src/timemodel.cpp"                                        		    
+                    "src/rs232.cpp"                    
                     "src/serialporthandler.cpp"
                     "src/latencymodel.cpp"
-		    "src/window.cpp" 
+                    "src/window.cpp"
+                    "src/lagtest.cpp"
                     "src/main.cpp"
                                         )
-set (PRJ_INCLUDE "src"
-)
+set (PRJ_INCLUDE "src" )
 
-add_executable(lagtest ${RRJ_SOURCES})
-include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR})
+add_executable( lagtest ${RRJ_SOURCES} )
+include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${QWT_INC_PATH} )
 
 qt5_use_modules(lagtest Widgets OpenGL )
-#target_link_libraries(lagtest  ${LIBRARIES} ${QT_LIBRARIES} ${OPENGL_LIBRARIES} )
-target_link_libraries(lagtest  ${OPENGL_LIBRARIES} )
-#CMAKE_EXE_LINKER_FLAGS ( -static )
+
+target_link_libraries(lagtest  ${OPENGL_LIBRARIES} ${QWT_LIBRARY} )
+
 # ============ Test files ============== #
 
 #rosbuild_add_executable(IPPImage_Test src/IMPFramework/Test/IPPImage_Test.cpp src/IMPFramework/IPPImage.cpp )
