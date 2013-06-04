@@ -52,6 +52,34 @@
 class QwtPlot;
 class QwtPlotCurve;
 class LatencyModel;
+class QMenuBar;
+
+class flashingBGQPaint : public QWidget
+{
+    Q_OBJECT
+public:
+    explicit flashingBGQPaint(int flipRate, TimeModel *clock, RingBuffer<screenFlip> *store);
+
+public slots:
+    void receiveStart();
+    void receiveStop();
+
+protected:
+    void paintEvent(QPaintEvent *event);
+
+    QRect r;
+    bool drawWhiteBG;
+    bool redraw;
+    QTimer* timer;
+    TimeModel *clock;
+    RingBuffer<screenFlip> *store;
+
+signals:
+
+public slots:
+    void flipColor();
+
+};
 
 class Window : public QWidget
 {
@@ -66,13 +94,17 @@ signals:
     void startMeassurement();
     void stopMeassurement();
     void doReset();
+    void flashAdruino();
 
 public slots:
     void receiveUnstableLatency();
-    void receiveStableLatency(double latency);
+    void receiveStableLatency();
     void receiveInvalidLatency();
     void receiveLatencyUpdate(LatencyModel *lm);
     void receiveNewMeassurementWindow(uint8_t* window, double* time, flip_type type);
+    void quit();
+    void emitFlashAction();
+    void recvOpenHelpPage();
 
 protected:
     virtual void keyPressEvent(QKeyEvent *event);
@@ -81,14 +113,19 @@ protected:
     //QwtPlot* plot[2];
 
     int nCurves;
-    int updateCurveIdx;
+    int updateCurveIdx[2];
     QWidget* plot;
     std::vector<QwtPlotCurve*> curves[2];
+    QwtPlotCurve* meanCurves[2];
     QwtPlot* cPlots[2];
     bool showPlot;
 
     double* xData;
     double* yData;
+
+    QMenuBar* createMenu();
+    void createPlots();
+
 
 private:    
 };
@@ -101,6 +138,8 @@ public:
 protected:
     virtual void keyPressEvent(QKeyEvent *event) { this->parent()->event(event); }
 };
+
+
 
 //! [0]
 

@@ -3,6 +3,7 @@
 
 #include <QTimer>
 
+#include <vector>
 #include "timemodel.h"
 #include "ringbuffer.hpp"
 
@@ -15,16 +16,19 @@ public:
     void resetHistory();
 
     const static int latencyHistorySize = 5;
-    const static int latencyStableSize = 3;
+    const static int latencyStableSize = 5;
     const static int flipHistorySize = 5;
     const static int measurementWindowSize = 100; //Take 100 adc samples before and after the screen flip
-    const static int measurementHistoryLength = 5; //Keep the last 10 measurement windows and do averaging over them
+    const static int measurementHistoryLength = 10; //Keep the last 10 measurement windows and do averaging over them
 
     typedef uint8_t adcWindow[2][measurementHistoryLength][measurementWindowSize];
 
     double* getSampleTimes() { return sampleTimes; }
     adcWindow* getAdcData(){ return &adcData; }
-
+    double getLastLatency() { return lastLatency; }
+    double getAvgLatency() { return avgLatency; }
+    double getAvgLatencySD() { return avgLatencySD; }
+    std::vector<double> getAllLatencies() { return allLatencies; }
 
 
 public slots:
@@ -35,7 +39,7 @@ public slots:
 
 
 signals:
-    void signalStableLatency(double latency);
+    void signalStableLatency();
     void signalUnstableLatency();
     void signalInvalidLatency();
     void signalUpdate(LatencyModel* lm);
@@ -44,8 +48,10 @@ signals:
 private:
     bool findFlipp(adcMeasurement *flip, screenFlip sf);
     double calculateLatency();
-    bool isStable(double *stableResult = 0);
+    double getProcessedLatency();
+    bool isStable(int stablePeriod);
     bool detectdisplacedSensor();
+    void addLatency(double latency);
 
     QTimer* timer;
     TimeModel* tm;
@@ -54,6 +60,9 @@ private:
     RingBuffer<screenFlip>* screenFlips;
 
     double lastLatency;
+    double avgLatency;
+    double avgLatencySD;
+    std::vector<double> allLatencies;
 
     int latencyCnt;
     double latency[latencyHistorySize];
