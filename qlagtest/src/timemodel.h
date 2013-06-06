@@ -31,7 +31,7 @@ class TimeModel
 public:
     TimeModel();
 
-    const static int clockHistory = 10;
+    const static int clockHistory = 5;
 
     void testModelGenerator();
     double getCurrentTime();

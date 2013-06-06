@@ -101,13 +101,16 @@ public slots:
     void receiveStableLatency();
     void receiveInvalidLatency();
     void receiveLatencyUpdate(LatencyModel *lm);
-    void receiveNewMeassurementWindow(uint8_t* window, double* time, flip_type type);
+    void receiveNewMeassurementWindow(uint8_t* window, double* avgWindow, double* time, flip_type type);
+    void rcvTogglePlot();
     void quit();
     void emitFlashAction();
     void recvOpenHelpPage();
+    void rcvShowAbout();
 
-protected:
+protected:   
     virtual void keyPressEvent(QKeyEvent *event);
+    virtual void keyReleaseEvent(QKeyEvent *event);
     QLabel* msg;
     QLabel* latency;
     //QwtPlot* plot[2];
@@ -117,6 +120,7 @@ protected:
     QWidget* plot;
     std::vector<QwtPlotCurve*> curves[2];
     QwtPlotCurve* meanCurves[2];
+    QwtPlotCurve* vLine[2];
     QwtPlot* cPlots[2];
     bool showPlot;
 

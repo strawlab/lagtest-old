@@ -59,12 +59,35 @@
 #include "window.h"
 #include "rs232.h"
 #include <QSettings>
+#include <QPlainTextEdit>
 
 #include "lagtest.h"
 
+QPlainTextEdit* logWindow;
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    //logWindow->setWindowTitle(msg);
+    logWindow->setPlainText( "msg" );
+    //printf("in %s [%p]\n" , context.function, logWindow,  );
+//    if( logWindow != NULL ) {
+//        //logWindow->appendPlainText( msg );
+//        QString s = QString("msg");
+//        //logWindow->setPlainText( s );
+//    }
+    //qDebug("Vamosss %s", msg.toStdString().c_str());
+}
+
 int main(int argc, char **argv)
 {
+
+
     QApplication app(argc, argv);
+
+    //logWindow = new QPlainTextEdit();
+    //logWindow->setCenterOnScroll(true);
+    //logWindow->setReadOnly(true);
+    //logWindow->show();
+    //qInstallMessageHandler(myMessageOutput);
 
 //#define FLASH
 #ifdef FLASH
@@ -73,7 +96,7 @@ int main(int argc, char **argv)
 #else
     //RingBuffer<char>::test();
     //return 1;
-    LagTest lagtest( 500, 800, 500);
+    LagTest lagtest( 300, 1000, 500);
 #endif
     return app.exec();
 }

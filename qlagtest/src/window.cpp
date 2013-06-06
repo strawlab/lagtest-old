@@ -57,13 +57,13 @@
 #include <qwt_legend.h>
 
 #include <QDesktopServices>
+#include <QMessageBox>
 
 //Window::Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
 Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips) :
     showPlot(false)
-{
+{    
     qDebug("Creating main window ...");
-
     QWidget* flipWindow;
 	enum drawingType drawing = Window::QPAINT;
     setWindowTitle("Lagtest - How fast is your display");
@@ -98,6 +98,7 @@ Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips) :
     qDebug("Main Window done!");    
 }
 
+
 QMenuBar* Window::createMenu()
 {
     //Create Menu
@@ -122,6 +123,8 @@ QMenuBar* Window::createMenu()
     connect(exitAction, SIGNAL(triggered()), this, SLOT(quit()));
     connect(flashAction, SIGNAL(triggered()), this, SLOT(emitFlashAction()));
     connect(helpPageAction, SIGNAL(triggered()), this, SLOT(recvOpenHelpPage()));
+    connect(plotAction, SIGNAL(triggered()), this, SLOT(rcvTogglePlot()));
+    connect(aboutAction, SIGNAL(triggered()), this, SLOT( rcvShowAbout()) );
 
     return menuBar;
 }
@@ -139,53 +142,67 @@ void Window::createPlots()
     this->cPlots[BLACK_TO_WHITE] = new QwtPlot( QwtText("Black to White") );
     this->cPlots[WHITE_TO_BLACK] = new QwtPlot( QwtText("White to Black") );
 
-    cPlots[BLACK_TO_WHITE]->setCanvasBackground(QBrush(Qt::white));
-    cPlots[WHITE_TO_BLACK]->setCanvasBackground(QBrush(Qt::white));
+    cPlots[BLACK_TO_WHITE]->setCanvasBackground(QBrush(Qt::lightGray));
+    cPlots[WHITE_TO_BLACK]->setCanvasBackground(QBrush(Qt::lightGray));
 
     //cPlots[BLACK_TO_WHITE]->setAxisScale(QwtPlot::yLeft, -10, 50);
     //cPlots[WHITE_TO_BLACK]->setAxisScale(QwtPlot::yLeft, -10, 50);
     cPlots[BLACK_TO_WHITE]->setFooter( "Latency [ms]" );
-    cPlots[WHITE_TO_BLACK]->setFooter( "Latency [ms]" );
+    cPlots[WHITE_TO_BLACK]->setFooter( "Latency [ms]" );    
 
-    QwtLegend* l = new QwtLegend();
-    QwtLegend* l2 = new QwtLegend();
-    l->setWindowTitle( "ADC" );
-    l2->setWindowTitle( "ADC" );
-    cPlots[BLACK_TO_WHITE]->insertLegend( l );
-    cPlots[WHITE_TO_BLACK]->insertLegend( l2 );
+    //QwtLegend* l = new QwtLegend();
+    //QwtLegend* l2 = new QwtLegend();
+    //l->setWindowTitle( "ADC" );
+    //l2->setWindowTitle( "ADC" );
+    //cPlots[BLACK_TO_WHITE]->insertLegend( l );
+    //cPlots[WHITE_TO_BLACK]->insertLegend( l2 );
 
 
     updateCurveIdx[BLACK_TO_WHITE] = 0;
     updateCurveIdx[WHITE_TO_BLACK] = 0;
 
     this->nCurves = LatencyModel::measurementHistoryLength;
-    int colors[] = { Qt::red, Qt::darkYellow, Qt::lightGray, Qt::gray, Qt::darkGray, Qt::black, Qt::green};
+    int colors[] = { Qt::yellow, Qt::darkYellow, Qt::gray, Qt::darkGray, Qt::black, Qt::green, Qt::darkGreen, Qt::cyan, Qt::darkCyan, Qt::magenta, Qt::darkMagenta };
     int nColors = sizeof(colors)/sizeof(int);
-    qDebug("nColors %d", nColors);
+    std::vector<QColor> colorObj;
+
+    for( int i=0; i < nColors; i++){
+        QColor c((Qt::GlobalColor) colors[i%nColors]);
+        c.setAlpha( 100 );
+        colorObj.push_back( c );
+    }
+    //qDebug("nColors %d", nColors);
 
     QPen p;
 
     p.setStyle(Qt::DashLine);
     p.setWidth( 3 );
     p.setColor( Qt::blue );
+    this->vLine[WHITE_TO_BLACK] = new QwtPlotCurve();
+    this->vLine[BLACK_TO_WHITE] = new QwtPlotCurve();
+    this->vLine[WHITE_TO_BLACK]->setPen( p );
+    this->vLine[BLACK_TO_WHITE]->setPen( p );
+    this->vLine[WHITE_TO_BLACK]->hide();
+    this->vLine[BLACK_TO_WHITE]->hide();
+    this->vLine[WHITE_TO_BLACK]->attach( cPlots[WHITE_TO_BLACK] );
+    this->vLine[BLACK_TO_WHITE]->attach( cPlots[BLACK_TO_WHITE] );
+
+    p.setWidth( 3 );
+    p.setStyle(Qt::SolidLine);
+    p.setColor( Qt::red );
     this->meanCurves[WHITE_TO_BLACK] = new QwtPlotCurve();
     this->meanCurves[BLACK_TO_WHITE] = new QwtPlotCurve();
     this->meanCurves[WHITE_TO_BLACK]->setPen( p );
     this->meanCurves[BLACK_TO_WHITE]->setPen( p );
-    this->meanCurves[WHITE_TO_BLACK]->hide();
-    this->meanCurves[BLACK_TO_WHITE]->hide();
     this->meanCurves[WHITE_TO_BLACK]->attach( cPlots[WHITE_TO_BLACK] );
     this->meanCurves[BLACK_TO_WHITE]->attach( cPlots[BLACK_TO_WHITE] );
-//    this->meanCurves[WHITE_TO_BLACK]->setTitle( "Mean Latency" );
-//    this->meanCurves[BLACK_TO_WHITE]->setTitle( "Mean Latency" );
-
 
     p.setStyle(Qt::SolidLine);
     p.setWidth( 1 );
 
     for(int i=0; i < nCurves; i++)
     {
-        p.setColor( QColor( (Qt::GlobalColor) colors[i%nColors] ) );
+        p.setColor( (QColor) colorObj[i%nColors] );
 
         curves[BLACK_TO_WHITE].push_back( new QwtPlotCurve() );
         curves[WHITE_TO_BLACK].push_back( new QwtPlotCurve() );
@@ -211,32 +228,53 @@ void Window::createPlots()
 }
 
 
+void Window::keyReleaseEvent(QKeyEvent *event)
+{
+    switch (event->key())
+    {
+        case Qt::Key_Space:
+        {
+            if( event->isAutoRepeat() )
+                break;
+
+            this->msg->setText( "Remain still. Calculating Latency ..." );
+            emit startMeassurement();
+            emit doReset();
+            break;
+        }
+    }
+}
+
 void Window::keyPressEvent(QKeyEvent *event)
 {
     //qDebug("Pressed key %c", event->key() );
 
-    switch (event->key()) {
-        case Qt::Key_Space:{
-                this->msg->setText( "Remain still. Calculating Latency ..." );
-                emit startMeassurement();
-                emit doReset();
-            break;
-        }
+    switch (event->key()) {       
     case Qt::Key_D:{
-            if( this->showPlot ) {
-                this->plot->show();
-            } else {
-                this->plot->hide();
-            }
-            this->raise();
-            this->setFocus();
-            showPlot = !showPlot;
+            this->rcvTogglePlot();
             break;
         }
     case Qt::Key_Q:{
             this->quit();
         }
+    }        
+}
+
+void Window::rcvShowAbout()
+{
+    QMessageBox::about(this, tr("Lagtest - How slow is your display?"), tr("Some nice text here ...") );
+}
+
+void Window::rcvTogglePlot()
+{
+    if( this->showPlot ) {
+        this->plot->show();
+    } else {
+        this->plot->hide();
     }
+    this->raise();
+    this->setFocus();
+    showPlot = !showPlot;
 }
 
 void Window::receiveInvalidLatency()
@@ -244,8 +282,8 @@ void Window::receiveInvalidLatency()
     this->msg->setText( "Invalid Latency. Adjust the position of the light sensor to be ontop of the blinking area." );
     this->latency->clear();
 
-    this->meanCurves[WHITE_TO_BLACK]->hide();
-    this->meanCurves[BLACK_TO_WHITE]->hide();
+    this->vLine[WHITE_TO_BLACK]->hide();
+    this->vLine[BLACK_TO_WHITE]->hide();
 }
 
 void Window::receiveUnstableLatency()
@@ -253,8 +291,8 @@ void Window::receiveUnstableLatency()
     this->msg->setText( "Unstable Latency. Remain still. Calculating Latency ..." );
     this->latency->clear();
 
-    this->meanCurves[WHITE_TO_BLACK]->hide();
-    this->meanCurves[BLACK_TO_WHITE]->hide();
+    this->vLine[WHITE_TO_BLACK]->hide();
+    this->vLine[BLACK_TO_WHITE]->hide();
 }
 
 void Window::receiveStableLatency()
@@ -262,9 +300,9 @@ void Window::receiveStableLatency()
     this->msg->setText( "Found a Latency of" );    
 }
 
-void Window::receiveNewMeassurementWindow(uint8_t* window, double *time, flip_type type)
+void Window::receiveNewMeassurementWindow(uint8_t* window, double *avgWindow, double *time, flip_type type)
 {    
-    qDebug("Updateing curve %d",updateCurveIdx[type]);
+    //qDebug("Updateing curve %d",updateCurveIdx[type]);
     for(int j=0; j < LatencyModel::measurementWindowSize; j++)
     {
         this->yData[j] = window[j];
@@ -272,6 +310,9 @@ void Window::receiveNewMeassurementWindow(uint8_t* window, double *time, flip_ty
     }
     updateCurveIdx[type] = (updateCurveIdx[type]+1)%nCurves;
     this->curves[type][this->updateCurveIdx[type]]->setSamples( xData, yData, LatencyModel::measurementWindowSize );
+
+    //Update Mean curve
+    this->meanCurves[type]->setSamples( xData, avgWindow, LatencyModel::measurementWindowSize );
 
     this->cPlots[type]->replot();
 }
@@ -288,11 +329,13 @@ void Window::receiveLatencyUpdate(LatencyModel* lm)
 
     double x[2], y[2];
     x[0] = al / 1000000.0; y[0] = -10.0;
-    x[1] = al / 1000000.0; y[1] = this->curves[0][0]->maxYValue() + 10;
-    this->meanCurves[WHITE_TO_BLACK]->setSamples( x, y, 2 );
-    this->meanCurves[BLACK_TO_WHITE]->setSamples( x, y, 2 );
-    this->meanCurves[WHITE_TO_BLACK]->show();
-    this->meanCurves[BLACK_TO_WHITE]->show();
+    x[1] = al / 1000000.0; y[1] = this->meanCurves[WHITE_TO_BLACK]->maxYValue() + 10;
+    this->vLine[WHITE_TO_BLACK]->setSamples( x, y, 2 );
+    this->vLine[BLACK_TO_WHITE]->setSamples( x, y, 2 );
+
+    this->vLine[WHITE_TO_BLACK]->show();
+    this->vLine[BLACK_TO_WHITE]->show();
+
 }
 
 void Window::emitFlashAction(){
@@ -317,7 +360,7 @@ SubWindow::SubWindow(QWidget* parent) : QWidget( parent , Qt::Window ) {}
 flashingBGQPaint::flashingBGQPaint(int flipRate, TimeModel* clock, RingBuffer<screenFlip> *store) :
     QWidget(0),
     r(this->rect()),
-    drawWhiteBG(true),
+    drawWhiteBG(false),
     clock(clock),
     store(store)
 {
@@ -328,9 +371,9 @@ flashingBGQPaint::flashingBGQPaint(int flipRate, TimeModel* clock, RingBuffer<sc
 
 
 void flashingBGQPaint::flipColor()
-{
-    this->drawWhiteBG = !this->drawWhiteBG;
+{    
     emit update(); //Will produce a paint event, and make the screen update
+    this->drawWhiteBG = !this->drawWhiteBG;
 }
 
 void flashingBGQPaint::paintEvent(QPaintEvent *event)

@@ -19,12 +19,15 @@ void LatencyModel::start()
     QTimer* t = new QTimer();
     t->setSingleShot(true);
     connect(t, SIGNAL(timeout()), this, SLOT( realStart()) );
-    t->start(1000); //start one second later
+    t->start(2000); //start one second later
 }
 
 void LatencyModel::realStart()
 {
-    qDebug("Starting latency model ...");
+    qDebug("Starting latency model @%g" , tm->getCurrentTime() );
+    this->screenFlips->reset();
+    //qDebug("Screen Flip %d", this->screenFlips->canGet() );
+    //this->adc->reset();
     this->resetHistory();
     this->timer->start();
 }
@@ -37,6 +40,13 @@ void LatencyModel::resetHistory()
         this->latency[i] = -1.0;
     }
 
+    for( int j=0; j < measurementWindowSize; j++ )
+    {
+        this->avgAdcWindow[WHITE_TO_BLACK][j] = 0;
+        this->avgAdcWindow[BLACK_TO_WHITE][j] = 0;
+        this->sampleTimes[j] = 0.0;
+    }
+
     for( int i=0; i < LatencyModel::measurementHistoryLength; i++)
     {
         for( int j=0; j < measurementWindowSize; j++ )
@@ -44,11 +54,14 @@ void LatencyModel::resetHistory()
             this->adcData[WHITE_TO_BLACK][i][j] = -1;
             this->adcData[BLACK_TO_WHITE][i][j] = -1;
         }
-    }
+        emit signalNewMeassurementWindow( this->adcData[WHITE_TO_BLACK][i], this->avgAdcWindow[WHITE_TO_BLACK], this->sampleTimes, WHITE_TO_BLACK );
+        emit signalNewMeassurementWindow( this->adcData[BLACK_TO_WHITE][i], this->avgAdcWindow[BLACK_TO_WHITE], this->sampleTimes, BLACK_TO_WHITE );
+    } 
+    emit signalUpdate(this);
 
+    this->measurementCnter[BLACK_TO_WHITE] = -1;
+    this->measurementCnter[WHITE_TO_BLACK] = -1;
 
-    this->measurementCnter[BLACK_TO_WHITE] = 0;
-    this->measurementCnter[WHITE_TO_BLACK] = 0;
     this->nMeasurements[BLACK_TO_WHITE] = 0;
     this->nMeasurements[WHITE_TO_BLACK] = 0;
 
@@ -67,7 +80,7 @@ void LatencyModel::update()
 {
     double latency;
 
-    qDebug("Updateing the latency model [%g]", this->tm->getCurrentTime() );
+    //qDebug("Updateing the latency model [%g]", this->tm->getCurrentTime() );
 
     //Read all new clock pairs and use them to update the time model
     clockPair cp;
@@ -77,16 +90,15 @@ void LatencyModel::update()
     }
 
     latency = -1.0;
-    //Add new screen flips
-    adcMeasurement adc;
+
     while( this->screenFlips->canGet() )
     {
         this->screenFlips->get(&(this->flips[this->flipCnt]) );
 
-        if( this->findFlipp(&adc, this->flips[this->flipCnt] ) )
+        if( this->findMeasurementWindow( this->flips[this->flipCnt] ) )
         {
             latency = this->calculateLatency( );
-            qDebug("Latency [%g]", latency);
+            //qDebug("Latency [%g]", latency);
 
             this->addLatency( latency );
             flipCnt = (flipCnt+1) % flipHistorySize;
@@ -136,10 +148,8 @@ void LatencyModel::addLatency(double newLatency)
 
 double LatencyModel::calculateLatency()
 {
-    long avgADC[2][measurementWindowSize];
-
     //Calculate mean values
-    int i,j,n, idx;
+    int j, idx;
     double latency;
 
     if( this->detectdisplacedSensor() )
@@ -148,27 +158,62 @@ double LatencyModel::calculateLatency()
         return -1;
     }
 
-    if( this->nMeasurements[0] < this->nMeasurements[1]) {
-        n = nMeasurements[0];
-    } else {
-        n = nMeasurements[1];
+    this->createAvgWindow();
+
+    idx = -1;
+    for( j=0; j < measurementWindowSize; j++ )
+    {
+        if( avgAdcWindow[WHITE_TO_BLACK][j] < avgAdcWindow[BLACK_TO_WHITE][j]){
+            idx = j;
+            //qDebug("Found a crossofer at idx %d", idx);
+            break;
+        }
     }
-    if( n > measurementHistoryLength )
-        n = measurementHistoryLength;
+
+    if( (idx == 0) || (idx==measurementWindowSize) )
+    {
+        qWarning("Could not detect crossover!");
+        latency = -1;
+        emit signalInvalidLatency();
+    } else {
+        latency = this->sampleTimes[idx];
+    }
+
+    return latency;
+}
+
+void LatencyModel::createAvgWindow()
+{
+    int i,j,n[2];
+    //char buffer[2000];
+
+    n[WHITE_TO_BLACK] = nMeasurements[WHITE_TO_BLACK];
+    n[BLACK_TO_WHITE] = nMeasurements[BLACK_TO_WHITE];
+
+    if( n[WHITE_TO_BLACK] > measurementHistoryLength)
+        n[WHITE_TO_BLACK] = measurementHistoryLength;
+
+    if( n[BLACK_TO_WHITE] > measurementHistoryLength)
+        n[BLACK_TO_WHITE] = measurementHistoryLength;
 
     for(i = 0; i < measurementWindowSize; i++){
-        avgADC[WHITE_TO_BLACK][i] = 0;
-        avgADC[BLACK_TO_WHITE][i] = 0;
+        this->avgAdcWindow[WHITE_TO_BLACK][i] = 0.0;
+        this->avgAdcWindow[BLACK_TO_WHITE][i] = 0.0;
     }
 
     //char buffer[2000];
 
-    for( i=0; i < n; i++)
+    for( i=0; i < measurementHistoryLength; i++)
     {
         for( j=0; j < measurementWindowSize; j++ )
         {
-            avgADC[WHITE_TO_BLACK][j] += this->adcData[WHITE_TO_BLACK][i][j];
-            avgADC[BLACK_TO_WHITE][j] += this->adcData[BLACK_TO_WHITE][i][j];   
+            if(n[WHITE_TO_BLACK] > i) {
+                avgAdcWindow[WHITE_TO_BLACK][j] += this->adcData[WHITE_TO_BLACK][i][j];                    
+            }
+
+            if(n[BLACK_TO_WHITE] > i) {
+                avgAdcWindow[BLACK_TO_WHITE][j] += this->adcData[BLACK_TO_WHITE][i][j];
+            }
         }
 
 //        buffer[0] = 0;
@@ -188,33 +233,29 @@ double LatencyModel::calculateLatency()
 
     }
 
-    idx = -1;
     for( j=0; j < measurementWindowSize; j++ )
     {
-        if( avgADC[WHITE_TO_BLACK][j] < avgADC[BLACK_TO_WHITE][j]){
-            idx = j;
-            qDebug("Found a crossofer at idx %d", idx);
-            break;
-        }
+        avgAdcWindow[WHITE_TO_BLACK][j] = avgAdcWindow[WHITE_TO_BLACK][j] / n[WHITE_TO_BLACK];
+        avgAdcWindow[BLACK_TO_WHITE][j] = avgAdcWindow[BLACK_TO_WHITE][j] / n[BLACK_TO_WHITE];
     }
 
-    if( (idx == 0) || (idx==measurementWindowSize) )
-    {
-        qWarning("Could not detect crossover!");
-        latency = -1;
-        emit signalInvalidLatency();
-    } else {
-        latency = this->sampleTimes[idx];
-    }
+//    buffer[0] = 0;
+//    sprintf(buffer,"Avg Window n = [%d / %d]\n", n[0], n[1]);
+//    for(i = 0; i < measurementWindowSize; i++){
+//        sprintf( &buffer[strlen(buffer)], " [%g] ", (this->avgAdcWindow[WHITE_TO_BLACK][i]) );
+//    }
+//    qDebug(buffer);
 
-    return latency;
 }
 
+
+//Calculate the avg and standart derivation for the last measurement window
 bool LatencyModel::detectdisplacedSensor()
 {
     int j;
     double windowAVG[2] = {0, 0};
     double windowSTD[2] = {0, 0};
+    double t;
 
     for( j=0; j < measurementWindowSize; j++ )
     {
@@ -226,25 +267,29 @@ bool LatencyModel::detectdisplacedSensor()
 
     for( j=0; j < measurementWindowSize; j++ )
     {
-        windowSTD[WHITE_TO_BLACK] += sqrt( (windowAVG[WHITE_TO_BLACK]-this->adcData[WHITE_TO_BLACK][this->measurementCnter[WHITE_TO_BLACK]][j])*(windowAVG[WHITE_TO_BLACK]-this->adcData[WHITE_TO_BLACK][this->measurementCnter[WHITE_TO_BLACK]][j]) );
-        windowSTD[BLACK_TO_WHITE] += sqrt( (windowAVG[BLACK_TO_WHITE]-this->adcData[BLACK_TO_WHITE][this->measurementCnter[BLACK_TO_WHITE]][j])*(windowAVG[BLACK_TO_WHITE]-this->adcData[BLACK_TO_WHITE][this->measurementCnter[BLACK_TO_WHITE]][j]) );
+        t = windowAVG[WHITE_TO_BLACK] - this->adcData[WHITE_TO_BLACK][this->measurementCnter[WHITE_TO_BLACK]][j];
+        windowSTD[WHITE_TO_BLACK] += sqrt( t*t );
+
+        t = windowAVG[BLACK_TO_WHITE] - this->adcData[BLACK_TO_WHITE][this->measurementCnter[BLACK_TO_WHITE]][j];
+        windowSTD[BLACK_TO_WHITE] += sqrt( t*t );
     }
 
-    if( (windowSTD[WHITE_TO_BLACK] < windowAVG[WHITE_TO_BLACK]) || (windowSTD[BLACK_TO_WHITE] < windowAVG[BLACK_TO_WHITE]) )
+    //qDebug("Analysis W2B: [%g / %g] | B2W: [%g / %g]" , windowSTD[WHITE_TO_BLACK],windowAVG[WHITE_TO_BLACK], windowSTD[BLACK_TO_WHITE],windowAVG[BLACK_TO_WHITE]);
+    if( (windowSTD[WHITE_TO_BLACK] < 2*windowAVG[WHITE_TO_BLACK]) || (windowSTD[BLACK_TO_WHITE] < 2*windowAVG[BLACK_TO_WHITE]) )
     {
-        qDebug("Too little difference in the measurement values ...");
+        qDebug("Too little difference in the measurement values ... W2B: [%g / %g] | B2W: [%g / %g]" , windowSTD[WHITE_TO_BLACK],windowAVG[WHITE_TO_BLACK], windowSTD[BLACK_TO_WHITE],windowAVG[BLACK_TO_WHITE]);
         return true;
     } else {
         return false;
     }
 }
 
-bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
+bool LatencyModel::findMeasurementWindow(screenFlip sf )
 {   
     bool found = false;
     adcMeasurement s;
 
-    qDebug("Trying to find a flip at %g", sf.local);
+    //qDebug("Trying to find a flip at %g", sf.local);
     //Consume all adc sample values till we get one taken after the flip
     while( !found && this->adc->canGet())
     {
@@ -253,7 +298,7 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
         //last entry in the ringbuffer is the sample closest in time to the screen flip
         if( this->tm->toLocalTime(s) > sf.local ){
             found = true;
-            //qDebug( "Found the closest samples after %d elements" );
+            //qDebug("For flip at %g using measurements starting from %g" , sf.local, this->tm->toLocalTime(s));
         }
     }
 
@@ -267,7 +312,7 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
         adcMeasurement tsample;
 
         this->nMeasurements[sf.type] ++;
-        this->measurementCnter[ sf.type ] = (this->measurementCnter[ sf.type ]+1)%measurementHistoryLength;
+        this->measurementCnter[ sf.type ] = (this->measurementCnter[ sf.type ]+1) % measurementHistoryLength;
 
         this->adcData[sf.type][this->measurementCnter[sf.type]][0] = s.adc;
         this->sampleTimes[0] = this->tm->toLocalTime( s ) - sf.local;
@@ -283,10 +328,18 @@ bool LatencyModel::findFlipp(adcMeasurement* flip, screenFlip sf )
             }
 
         }
-        if( nMeasurements[sf.type] > measurementHistoryLength ){
-            emit signalNewMeassurementWindow(this->adcData[sf.type][this->measurementCnter[sf.type]], this->sampleTimes, sf.type);
-        }
+        //if( nMeasurements[sf.type] > measurementHistoryLength ){
+        emit signalNewMeassurementWindow( this->adcData[sf.type][this->measurementCnter[sf.type]], this->avgAdcWindow[sf.type], this->sampleTimes, sf.type );
+        //}
     }
+
+//    char buffer[10000];
+//    buffer[0] = 0;
+//    sprintf(buffer," %s Measurement Window for flip %g\n" , (sf.type == BLACK_TO_WHITE)?"B2W":"W2B", sf.local);
+//    for(int k = 0; k < measurementWindowSize; k++){
+//        sprintf( &buffer[strlen(buffer)], " [%d] ", (adcData[sf.type][this->measurementCnter[sf.type]][k]) );
+//    }
+//    qDebug(buffer);
 
 //    char buffer[10000];
 //    buffer[0] = 0;

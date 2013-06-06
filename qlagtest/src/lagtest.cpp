@@ -12,15 +12,40 @@
 #include "serialporthandler.h"
 #include "window.h"
 #include "rs232.h"
+#include <QPlainTextEdit>
+#include <qapplication.h>
+
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+
+//extern QPlainTextEdit* logWindow;
+//void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+
+//QPlainTextEdit* logWindow;
+//void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+//{
+//    //printf("%s" , msg.toStdString().c_str() );
+//    logWindow->appendPlainText( msg );
+//    //qDebug("Vamosss %s", msg.toStdString().c_str());
+//}
 
 LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
 {
-    TimeModel* tm = new TimeModel();
+
+//    logWindow = new QPlainTextEdit();
+//    //logWindow->setCenterOnScroll(true);
+//    logWindow->setReadOnly(true);
+//    logWindow->show();
+//    qInstallMessageHandler(myMessageOutput);
+
+    this->doNewVersionCheck();
+
+    TimeModel* tm = new TimeModel();    
     //tm.testModelGenerator();
 
-    RingBuffer<screenFlip>* screenFlips = new RingBuffer<screenFlip>(100);
+    RingBuffer<screenFlip>* screenFlips = new RingBuffer<screenFlip>(20);
     RingBuffer<clockPair>* adruinoClock = new RingBuffer<clockPair>(100);
-    RingBuffer<adcMeasurement>* adcValues = new RingBuffer<adcMeasurement>(5000);
+    RingBuffer<adcMeasurement>* adcValues = new RingBuffer<adcMeasurement>(20000);
 
     this->loadSettings();
 
@@ -45,9 +70,36 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
     QObject::connect( lm, SIGNAL(signalUnstableLatency()),      w, SLOT(receiveUnstableLatency()) );
     QObject::connect( lm, SIGNAL(signalInvalidLatency()),       w, SLOT(receiveInvalidLatency()) );
     QObject::connect( lm, SIGNAL(signalUpdate(LatencyModel*)),  w, SLOT(receiveLatencyUpdate(LatencyModel*)) );
-    QObject::connect( lm, SIGNAL(signalNewMeassurementWindow(uint8_t*,double*,flip_type)), w, SLOT(receiveNewMeassurementWindow(uint8_t*,double*,flip_type)) );
+    QObject::connect( lm, SIGNAL(signalNewMeassurementWindow(uint8_t*,double*,double*,flip_type)), w, SLOT(receiveNewMeassurementWindow(uint8_t*,double*,double*,flip_type)) );
 
     w->show();
+}
+
+LagTest::~LagTest()
+{
+}
+
+void LagTest::doNewVersionCheck()
+{
+    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+    connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(recvVersionCheckFinished(QNetworkReply*)));
+    manager->get(QNetworkRequest(QUrl("http://version.lagtest.org/latest?uid=03012311")));
+    //manager->get(QNetworkRequest(QUrl("http://www.google.de/index.html")));
+}
+
+void LagTest::recvVersionCheckFinished(QNetworkReply *reply)
+{
+    if( reply->error() == QNetworkReply::NoError )
+    {
+        QByteArray d = reply->readAll();
+        qDebug( "Version check Ended! \n %s" , d.data() );
+        //TODO: Do real version check, parsing what ever comes back ...
+
+    } else {
+        qDebug( "Version check failed! %s\n " , reply->errorString().toStdString().c_str() );
+    }
+
+    reply->deleteLater();
 }
 
 std::vector<QString> LagTest::discoverComPorts()

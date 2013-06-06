@@ -43,15 +43,16 @@ signals:
     void signalUnstableLatency();
     void signalInvalidLatency();
     void signalUpdate(LatencyModel* lm);
-    void signalNewMeassurementWindow(uint8_t* window, double* time, flip_type type);
+    void signalNewMeassurementWindow(uint8_t* window, double* avgWindow, double* time, flip_type type);
 
 private:
-    bool findFlipp(adcMeasurement *flip, screenFlip sf);
+    bool findMeasurementWindow(screenFlip sf);
     double calculateLatency();
     double getProcessedLatency();
     bool isStable(int stablePeriod);
     bool detectdisplacedSensor();
     void addLatency(double latency);
+    void createAvgWindow();
 
     QTimer* timer;
     TimeModel* tm;
@@ -63,6 +64,7 @@ private:
     double avgLatency;
     double avgLatencySD;
     std::vector<double> allLatencies;
+    double avgAdcWindow[2][measurementWindowSize];
 
     int latencyCnt;
     double latency[latencyHistorySize];

@@ -97,7 +97,7 @@ void RingBuffer<T>::reset()
 {
     int rr;
     rr = this->w - 1;
-    rr = (rr < 0) ? this->size-1 : rr;
+    this->r = (rr < 0) ? this->size-1 : rr;
 }
 
 template <class T>

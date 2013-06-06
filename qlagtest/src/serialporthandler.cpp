@@ -111,7 +111,7 @@ void LagTestSerialPortComm::initSerialPort()
     {
         qCritical("Can not open comport.");
         throw std::exception();
-    }
+    }    
 }
 
 int LagTestSerialPortComm::write(unsigned char* data, int size){

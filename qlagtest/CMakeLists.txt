@@ -57,6 +57,8 @@ set( CMAKE_AUTOMOC ON ) # http://blogs.kde.org/2011/11/01/cool-new-stuff-cmake-2
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(Qt5Network REQUIRED)
+
 
 # Needed define by Qwt
 add_definitions(-DQWT_DLL)
@@ -85,7 +87,7 @@ set (PRJ_INCLUDE "src" )
 add_executable( lagtest ${RRJ_SOURCES} )
 include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${QWT_INC_PATH} )
 
-qt5_use_modules(lagtest Widgets OpenGL )
+qt5_use_modules(lagtest Widgets OpenGL Network)
 
 target_link_libraries(lagtest  ${OPENGL_LIBRARIES} ${QWT_LIBRARY} )
 
