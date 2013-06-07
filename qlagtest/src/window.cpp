@@ -48,16 +48,18 @@
 
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
-#include <qwt_point_data.h>
+#include <qwt_legend.h>
+//#include <qwt_point_data.h>
 #include <QMenuBar>
 
 #include <QCoreApplication>
 #include "latencymodel.h"
 
-#include <qwt_legend.h>
+
 
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QPainter>
 
 //Window::Window(enum drawingType drawing, TimeModel *tm, RingBuffer<screenFlip> *screenFlips)
 Window::Window(TimeModel *tm, RingBuffer<screenFlip> *screenFlips) :
@@ -133,6 +135,7 @@ QMenuBar* Window::createMenu()
 
 void Window::createPlots()
 {
+/*
     qDebug("Preparing plotting");
     this->xData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize );
     this->yData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize);
@@ -148,8 +151,10 @@ void Window::createPlots()
 
     //cPlots[BLACK_TO_WHITE]->setAxisScale(QwtPlot::yLeft, -10, 50);
     //cPlots[WHITE_TO_BLACK]->setAxisScale(QwtPlot::yLeft, -10, 50);
-    cPlots[BLACK_TO_WHITE]->setFooter( "Latency [ms]" );
-    cPlots[WHITE_TO_BLACK]->setFooter( "Latency [ms]" );    
+    //cPlots[BLACK_TO_WHITE]->setFooter( "Latency [ms]" );
+    cPlots[BLACK_TO_WHITE]->setAxisTitle( QwtPlot::xBottom, "Latency [ms]" );
+    cPlots[WHITE_TO_BLACK]->setAxisTitle( QwtPlot::xBottom, "Latency [ms]" );
+    //cPlots[WHITE_TO_BLACK]->setFooter( "Latency [ms]" );    
 
     //QwtLegend* l = new QwtLegend();
     //QwtLegend* l2 = new QwtLegend();
@@ -226,6 +231,7 @@ void Window::createPlots()
         this->plot->hide();
     }
     showPlot = !showPlot;
+*/
 }
 
 

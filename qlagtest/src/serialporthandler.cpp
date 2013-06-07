@@ -153,7 +153,7 @@ void LagTestSerialPortComm::startCommunication()
     }
 
     nBuffer = 0;  //Number of unread bytes in the buffer
-    qDebug("Adruino Frame length = %d bytes", frameLength );
+    qDebug("Adruino Frame length = %lld bytes", frameLength );
 
     while(1)
     {

@@ -36,7 +36,7 @@ RingBuffer<T>::RingBuffer(int size, bool allowOverwrite)
 {
     assert(size > 0);
 
-    qDebug("Alloctating [%d] elements of size %d", size, sizeof(T) );
+    qDebug("Alloctating [%d] elements of size %ld", size, sizeof(T) );
 
     this->size = size + (allowOverwrite?0:1); //If we dont overwrite, there must be a extra element in the ringbuffer
 

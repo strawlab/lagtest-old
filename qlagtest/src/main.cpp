@@ -82,6 +82,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
+ 
     QCoreApplication::setApplicationVersion( "0.8" );
 
     logWindow = new QPlainTextEdit(0);
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
 #else
     //RingBuffer<char>::test();
     //return 1;
+	qDebug( "Ok that works  ..." );
     LagTest lagtest( 300, 1000, 500);
 #endif
     return app.exec();

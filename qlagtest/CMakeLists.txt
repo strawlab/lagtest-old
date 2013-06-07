@@ -41,6 +41,9 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(CMAKE_MODULE_PATH "${QT5_INST}/cmake;${CMAKE_MODULE_PATH}" )
 
     find_package(Eigen3 REQUIRED )
+    set( QWT_INC_PATH "/usr/include/qwt")
+    find_library( QWT_LIBRARY NAMES qwt PATHS "/usr/lib" )
+
 
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
