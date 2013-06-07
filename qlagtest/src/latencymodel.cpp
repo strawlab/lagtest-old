@@ -12,6 +12,7 @@ LatencyModel::LatencyModel(int ms_updateRate, TimeModel *tm, RingBuffer<screenFl
 	this->timer = new QTimer();
     connect( timer, SIGNAL(timeout()), this, SLOT( update() ));    
     this->timer->setInterval(ms_updateRate);
+    this->resetHistory();
 }
 
 void LatencyModel::start()
@@ -24,7 +25,8 @@ void LatencyModel::start()
 
 void LatencyModel::realStart()
 {
-    qDebug("Starting latency model @%g" , tm->getCurrentTime() );
+    this->measurementStartTime = tm->getCurrentTime();
+    qDebug("Starting latency model @%g" , this->measurementStartTime );
     this->screenFlips->reset();
     //qDebug("Screen Flip %d", this->screenFlips->canGet() );
     //this->adc->reset();
@@ -69,6 +71,8 @@ void LatencyModel::resetHistory()
     this->avgLatency = -1.0;
     this->avgLatencySD = 0.0;
     this->allLatencies.clear();
+    this->measurementStartTime = this->tm->getCurrentTime();
+
 }
 
 void LatencyModel::reset()

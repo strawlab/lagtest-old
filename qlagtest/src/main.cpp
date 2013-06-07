@@ -63,11 +63,13 @@
 
 #include "lagtest.h"
 
-QPlainTextEdit* logWindow;
+QPlainTextEdit* logWindow = 0;
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+    logWindow->appendPlainText( msg );
+    printf("Having the Text \n%s" , logWindow->toPlainText().toStdString().c_str() );
     //logWindow->setWindowTitle(msg);
-    logWindow->setPlainText( "msg" );
+    //logWindow->setPlainText( "msg" );
     //printf("in %s [%p]\n" , context.function, logWindow,  );
 //    if( logWindow != NULL ) {
 //        //logWindow->appendPlainText( msg );
@@ -79,15 +81,14 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char **argv)
 {
-
-
     QApplication app(argc, argv);
+    QCoreApplication::setApplicationVersion( "0.8" );
 
-    //logWindow = new QPlainTextEdit();
+    logWindow = new QPlainTextEdit(0);
     //logWindow->setCenterOnScroll(true);
-    //logWindow->setReadOnly(true);
-    //logWindow->show();
-    //qInstallMessageHandler(myMessageOutput);
+    logWindow->setReadOnly(true);
+    logWindow->show();
+    qInstallMessageHandler(myMessageOutput);
 
 //#define FLASH
 #ifdef FLASH

@@ -32,9 +32,7 @@ double TimeModel::toLocalTime( adcMeasurement adc)
 }
 
 void TimeModel::update(clockPair cp)
-{
-    //qDebug("Updateing the time model");
-
+{    
     double adruinoClock = cp.adruino_epoch*(1<<16) + cp.adruino_ticks;
 
     cpCnt = (cpCnt + 1) % this->clockHistory ;
@@ -44,7 +42,7 @@ void TimeModel::update(clockPair cp)
     this->x = A.jacobiSvd(ComputeThinU | ComputeThinV).solve(b);
 
     this->gain = x(0); this->offset = x(1);
-    qDebug("TimdeModel: gain %g, offset %g , #n ClockPairs %d", gain, offset, cpCnt);
+    //qDebug("TimdeModel: gain %g, offset %g , #n ClockPairs %d", gain, offset, cpCnt);
 
     // Print the matrix and a test
     //cout << "A: " << A << endl;

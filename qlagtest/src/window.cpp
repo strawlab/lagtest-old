@@ -121,7 +121,8 @@ QMenuBar* Window::createMenu()
     menuBar->addMenu(helpMenu);
 
     connect(exitAction, SIGNAL(triggered()), this, SLOT(quit()));
-    connect(flashAction, SIGNAL(triggered()), this, SLOT(emitFlashAction()));
+    connect(flashAction, SIGNAL(triggered()), this, SIGNAL(flashAdruino()));
+    connect(writeProtocolAction, SIGNAL(triggered()), this, SIGNAL(generateReport()));
     connect(helpPageAction, SIGNAL(triggered()), this, SLOT(recvOpenHelpPage()));
     connect(plotAction, SIGNAL(triggered()), this, SLOT(rcvTogglePlot()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT( rcvShowAbout()) );
@@ -338,9 +339,6 @@ void Window::receiveLatencyUpdate(LatencyModel* lm)
 
 }
 
-void Window::emitFlashAction(){
-    emit flashAdruino();
-}
 
 void Window::recvOpenHelpPage(){
     QDesktopServices::openUrl(QUrl("http://lagtest.org", QUrl::TolerantMode));

@@ -17,6 +17,17 @@
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QFileDialog>
+#include <QMessageBox>
+
+
+#include <QDesktopServices>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QVariantMap>
+#include <QAbstractButton>
+#include <QFile>
 
 //extern QPlainTextEdit* logWindow;
 //void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
@@ -54,14 +65,15 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
 
     qDebug("Creating handler for serial port on %s...", port.toStdString().c_str() );
     // Setup Serial Port Reader
-    SerialPortHandler* serial = new SerialPortHandler(port, clockSyncPeriod, tm, adruinoClock, adcValues);
-    LatencyModel* lm = new LatencyModel(latencyUpdate, tm, screenFlips, adruinoClock, adcValues);
-
-    Window* w = new Window(tm, screenFlips);
+    this->serial = new SerialPortHandler(port, clockSyncPeriod, tm, adruinoClock, adcValues);
+    this->lm = new LatencyModel(latencyUpdate, tm, screenFlips, adruinoClock, adcValues);
+    this->w = new Window(tm, screenFlips);
 
     QObject::connect( w, SIGNAL(doReset()), lm, SLOT(reset()) );
     QObject::connect( w, SIGNAL(startMeassurement()), serial, SLOT(start()) );
     QObject::connect( w, SIGNAL(startMeassurement()), lm, SLOT(start()) );
+    QObject::connect( w, SIGNAL(generateReport()), this, SLOT( generateReport() ) );
+    QObject::connect( w, SIGNAL(flashAdruino()), this, SLOT( recvFlashAdruino() ) );
 
     //QObject::connect( &w, &Window::flashAdruino, getAdruinoPort );
 
@@ -79,11 +91,50 @@ LagTest::~LagTest()
 {
 }
 
-void LagTest::doNewVersionCheck()
+void LagTest::generateReport()
 {
+    QString text;
+    QString s;
+    text.append( "Lagtest - Latency Report\n" );
+    text.append( "########################\n" );
+
+    text.append( "\n" );
+    text.append( s.sprintf("Average Latency:        %3.2f [ms]\n" , (this->lm->getAvgLatency()/1e6) ) );
+    text.append( s.sprintf("Standard deviation:     %3.2f [ms]\n" , this->lm->getAvgLatencySD()/1e6 ) );
+    text.append( s.sprintf("Measurement duration:   %3.2f [sec]\n" , this->lm->getMeasurementDuration() / 1e9 ) );
+
+    text.append( "\n" );
+    text.append( tr("Display Vendor: XXXXXXX \n") );
+    text.append( tr("Display Model:  XXXXXXX \n") );
+
+    text.append( "\n" );
+    text.append( tr("Report generated with LagTest v%1 \n").arg( QCoreApplication::applicationVersion() ) );
+    text.append( tr("Find out how slow YOUR display is. Check %1 \n").arg("http://lagtest.org") );
+
+    qDebug("Report: \n%s", text.toStdString().c_str());
+
+    QString fileName = QFileDialog::getSaveFileName(0, tr("Save Protocol"), "C:", tr("Text File (*.txt)"));
+    QFile f(fileName);
+    if( f.open( QIODevice::WriteOnly | QIODevice::Text ) )
+    {
+        f.write( text.toLocal8Bit() );
+    } else {
+        QMessageBox::warning(0, tr("Write Error"), tr("Writing Protocol failed!") , QMessageBox::Ok, QMessageBox::NoButton);
+    }
+    f.close();
+}
+
+void LagTest::recvFlashAdruino()
+{
+    //qDebug("Current path %s" , QCoreApplication::applicationDirPath().toStdString().c_str() );
+    programArduino( QCoreApplication::applicationDirPath().append("/tools/avrdude.exe"), QCoreApplication::applicationDirPath().append("/firmware.hex"), this->settings->value("Adruino/Port").toString());
+}
+
+void LagTest::doNewVersionCheck()
+{    
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
     connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(recvVersionCheckFinished(QNetworkReply*)));
-    manager->get(QNetworkRequest(QUrl("http://version.lagtest.org/latest?uid=03012311")));
+    manager->get(QNetworkRequest(QUrl("http://version.lagtest.org/latest")));
     //manager->get(QNetworkRequest(QUrl("http://www.google.de/index.html")));
 }
 
@@ -92,8 +143,31 @@ void LagTest::recvVersionCheckFinished(QNetworkReply *reply)
     if( reply->error() == QNetworkReply::NoError )
     {
         QByteArray d = reply->readAll();
-        qDebug( "Version check Ended! \n %s" , d.data() );
-        //TODO: Do real version check, parsing what ever comes back ...
+//        QString jraw("{\"version\": \"100.9\", \"changes\": [\"fancy new feature\", \"bugfix\"]}");
+//        d = QByteArray(jraw.toStdString().c_str());
+
+        qDebug("Jason parsing of [%s]", d.data());
+        QJsonObject jO = QJsonDocument::fromJson( d ).object();
+
+        QString version = jO.value("version").toString();
+        QJsonArray changes = jO.value("changes").toArray();
+        QString ch1 = changes.at(0).toString();
+        QString ch2 = changes.at(1).toString();
+        qDebug("version = %s , changes [%s , %s]" , version.toStdString().c_str() , ch1.toStdString().c_str() , ch2.toStdString().c_str() );
+
+        double verNew = version.toDouble();
+        double verCur = QCoreApplication::applicationVersion().toDouble();
+
+        if( verNew > verCur )
+        {
+            QMessageBox *box = new QMessageBox(QMessageBox::NoIcon, "Version update", tr("New version available! %1 -> %2\n%3\n%4").arg(QCoreApplication::applicationVersion()).arg(version).arg(ch1).arg(ch2) \
+                                               ,QMessageBox::Ignore | QMessageBox::Ok);
+            box->button(QMessageBox::Ok)->setText("Update");
+            int buttonPressed = box->exec();
+            if( buttonPressed == QMessageBox::Ok ) {
+                QDesktopServices::openUrl(QUrl("http://lagtest.org", QUrl::TolerantMode));
+            }
+        }
 
     } else {
         qDebug( "Version check failed! %s\n " , reply->errorString().toStdString().c_str() );

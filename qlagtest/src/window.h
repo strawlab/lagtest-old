@@ -95,6 +95,7 @@ signals:
     void stopMeassurement();
     void doReset();
     void flashAdruino();
+    void generateReport();
 
 public slots:
     void receiveUnstableLatency();
@@ -103,8 +104,7 @@ public slots:
     void receiveLatencyUpdate(LatencyModel *lm);
     void receiveNewMeassurementWindow(uint8_t* window, double* avgWindow, double* time, flip_type type);
     void rcvTogglePlot();
-    void quit();
-    void emitFlashAction();
+    void quit();    
     void recvOpenHelpPage();
     void rcvShowAbout();
 

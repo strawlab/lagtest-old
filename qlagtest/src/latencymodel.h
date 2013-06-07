@@ -29,7 +29,7 @@ public:
     double getAvgLatency() { return avgLatency; }
     double getAvgLatencySD() { return avgLatencySD; }
     std::vector<double> getAllLatencies() { return allLatencies; }
-
+    double getMeasurementDuration() { return this->tm->getCurrentTime() - this->measurementStartTime; }
 
 public slots:
     void update();
@@ -77,6 +77,8 @@ private:
     adcWindow adcData;
     double sampleTimes[measurementWindowSize];
     long nMeasurements[2];
+
+    double measurementStartTime;
 };
 
 #endif // LATENCYMODEL_H

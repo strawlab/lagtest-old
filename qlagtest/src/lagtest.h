@@ -9,6 +9,10 @@
 class QSettings;
 class QNetworkReply;
 
+class LatencyModel;
+class SerialPortHandler;
+class Window;
+
 class LagTest : public QObject
 {    
     Q_OBJECT
@@ -19,6 +23,8 @@ public:
 public slots:
     void receiveFlashAdruino();
     void recvVersionCheckFinished(QNetworkReply*reply);
+    void generateReport();
+    void recvFlashAdruino();
 
 public:
     static std::vector<QString> discoverComPorts();
@@ -31,6 +37,9 @@ protected:
     void doNewVersionCheck();
 
     QSettings* settings;
+    LatencyModel* lm;
+    SerialPortHandler* serial;
+    Window* w;
 };
 
 #endif // LAGTEST_H
