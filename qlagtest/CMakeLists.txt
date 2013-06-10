@@ -88,12 +88,11 @@ set (RRJ_SOURCES    "src/timemodel.cpp"
                                         )
 set (PRJ_INCLUDE "src" )
 
-add_executable( lagtest ${RRJ_SOURCES} )
+add_executable( lagtest WIN32 ${RRJ_SOURCES} )
 include_directories(${PRJ_INCLUDE} ${OPENGL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${QWT_INC_PATH} )
 
+target_link_libraries(lagtest ${OPENGL_LIBRARIES} ${QWT_LIBRARY}  Qt5::WinMain )
 qt5_use_modules(lagtest Widgets OpenGL Network)
-
-target_link_libraries(lagtest  ${OPENGL_LIBRARIES} ${QWT_LIBRARY} )
 
 # ============ Test files ============== #
 

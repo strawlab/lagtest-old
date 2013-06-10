@@ -233,6 +233,7 @@ void Window::createPlots()
     }
     showPlot = !showPlot;
 
+    plot->resize( 700 , 500);
     qDebug("Preparing plots done ...");
 }
 

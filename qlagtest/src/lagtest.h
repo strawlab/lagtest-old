@@ -27,6 +27,9 @@ public slots:
     void recvFlashAdruino();
     void recvShowLogWindow();
 
+    void recvSerialMsg(QString msg);
+    void recvSerialError(QString msg);
+
 public:
     static std::vector<QString> discoverComPorts();
     static int programArduino(QString avrDudePath, QString pathToFirmware, QString port=QString() );

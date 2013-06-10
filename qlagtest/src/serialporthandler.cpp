@@ -32,8 +32,13 @@ void SerialPortHandler::createSerialPortCommunicator()
         connect(serial, SIGNAL(finished()), this, SLOT(onThreadQuit()));
         connect(serial, SIGNAL(finished()), serial, SLOT(deleteLater()));
 
+        connect(serial, SIGNAL(sendDebugMsg(QString)), this, SIGNAL(sendDebugMsg(QString)) );
+        connect(serial, SIGNAL(sendErrorMsg(QString)), this, SIGNAL(sendErrorMsg(QString)) );
+
+
     } catch (exception &e){
-        qCritical("Connecting to the lagtest serial board failed!");
+        //qCritical("Connecting to the lagtest serial board failed!");
+        this->sendErrorMsg("Connecting to the lagtest serial board failed!");
         throw e;
     }
 }
@@ -42,6 +47,7 @@ void SerialPortHandler::onThreadQuit()
 {
     //qDebug("Main: Serial Communicator finished ..." );
     //qDebug("Will restart serial port Communicator!");
+    this->sendDebugMsg("Will restart serial port Communicator!");
 
     try
     {
@@ -51,14 +57,17 @@ void SerialPortHandler::onThreadQuit()
 
         this->createSerialPortCommunicator();
     } catch (exception &e){
-        qCritical("Restarting Serial Port Communicator failed!");
+        //qCritical("Restarting Serial Port Communicator failed!");
+        this->sendErrorMsg("Restarting Serial Port Communicator failed!");
         throw e;
     }
 }
 
 void SerialPortHandler::start()
 {
-    qDebug("Starting serial port reader thread ...");
+    //qDebug("Starting serial port reader thread ...");
+    this->sendDebugMsg("Will restart serial port Communicator!");
+
     if(this->thread)
         this->thread->start();
 }
@@ -78,7 +87,9 @@ LagTestSerialPortComm::LagTestSerialPortComm(QString port, int bautRate,TimeMode
     this->portN = this->getPortIdx(port);
     if( portN < 0)
     {
-        qCritical("Invalid Com port [%s]!", port.toStdString().c_str() );
+        //qCritical("Invalid Com port [%s]!", port.toStdString().c_str() );
+        QString s;
+        this->sendErrorMsg( s.sprintf("Invalid Com port [%s]!", port.toStdString().c_str()));
         throw std::exception();
     }
 
@@ -96,8 +107,9 @@ int LagTestSerialPortComm::getPortIdx(QString portName)
         } else if( portName.contains("USB", Qt::CaseInsensitive) ){
             //qDebug("Detect USBXX");
             idx = portName.right(portName.length()-3).toInt() + 16; //From USB0 , extract 0, convert it to int, rs232 starts counting from 16.
-        } else {
-            qWarning("Invalid port name!");
+        } else {            
+            //qWarning("Invalid port name!");
+            fprintf(stderr, "Invalid port name!");
         }
     }
     return idx;
@@ -106,9 +118,12 @@ int LagTestSerialPortComm::getPortIdx(QString portName)
 void LagTestSerialPortComm::initSerialPort()
 {
     //qDebug("Opening Com port %d", portN+1);
+    QString s;
+    this->sendDebugMsg(s.sprintf("Opening Com port %d", portN+1));
     if(RS232_OpenComport(portN, this->bautRate))
     {
-        qCritical("Can not open comport.");
+        //qCritical("Can not open comport.");
+        this->sendErrorMsg("Can not open comport.");
         throw std::exception();
     }    
 }
@@ -147,7 +162,8 @@ void LagTestSerialPortComm::startCommunication()
     try{
         this->initSerialPort();
     } catch( ... ) {
-        qCritical("Opening Serial Port failed!");
+        //qCritical("Opening Serial Port failed!");
+        this->sendErrorMsg("Opening Serial Port failed!");
         emit finished();
     }
 
@@ -233,12 +249,15 @@ void LagTestSerialPortComm::startCommunication()
                 {
                 //Get the time the request was send; assume the latency of receiving the reply is symetrical; store the time on this pc and the adruino clock
                     if( frame.value > this->ntimeRequests ){
-                        qCritical("Adruino returns invalid reference id!");
+                        //qCritical("Adruino returns invalid reference id!");
+                        this->sendErrorMsg("Adruino returns invalid reference id!");
                     } else {
                         sendTime = this->timeRequests[ frame.value ];
                         d1 = (now - sendTime)/2.0;
                         if( d1 <= 0){
-                            qCritical("somethign strange happens here ... %g", d1 );
+                            //qCritical("somethign strange happens here ... %g", d1 );
+                            QString s;
+                            this->sendErrorMsg(s.sprintf("somethign strange happens here ... %g", d1 ));
                             d1 = 0;
                         }
                         cp.local = sendTime + d1;
@@ -254,10 +273,9 @@ void LagTestSerialPortComm::startCommunication()
                 }
             }
         } else {
-            qDebug( " Invalid Frame ... ");
+            //qDebug( " Invalid Frame ... ");
+            this->sendErrorMsg("Invalid Frame ... ");
         }
-
-
     }
 
 }

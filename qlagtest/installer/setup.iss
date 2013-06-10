@@ -15,11 +15,12 @@ Source: "*.dll"; DestDir: "{app}"
 Source: "flash.exe"; DestDir: "{app}"
 Source: "firmware.hex"; DestDir: "{app}"
 Source: "tools\*"; DestDir: "{app}\tools"
-Source: "readme.txt"; DestDir: "{app}"; Flags: isreadme
+;Source: "readme.txt"; DestDir: "{app}"; Flags: isreadme
 
 [Icons]
 Name: "{group}\lagtest"; Filename: "{app}\lagtest.exe"
 
 [Run]
-Filename: "{app}\flash.exe"; Parameters: "{app}\tools\avrdude.exe {app}\firmware.hex"; Description: "Flash adruino with newerst firmware"; Flags: postinstall
+Filename: "{app}\flash.exe"; Parameters: "{app}\tools\avrdude.exe {app}\firmware.hex"; Description: "Flash Arduino with newest lagtest firmware"; Flags: postinstall
+Filename: "{app}\lagtest.exe"; Description: "Start Lagtest"; Flags: postinstall
 

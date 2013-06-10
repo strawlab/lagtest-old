@@ -28,6 +28,7 @@
 #include <QVariantMap>
 #include <QAbstractButton>
 #include <QFile>
+#include <QDir>
 
 LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
 {
@@ -93,9 +94,24 @@ void LagTest::setupLogWindow()
     qInstallMessageHandler( myMessageOutput );
 }
 
-void LagTest::recvShowLogWindow()
-{
+void LagTest::recvShowLogWindow(){
     logWindow->show();
+}
+
+void LagTest::recvSerialMsg(QString msg)
+{
+    QString s;
+    s = "SerialPort: ";
+    s += msg;
+    qDebug( s.toStdString().c_str() );
+}
+
+void LagTest::recvSerialError(QString msg)
+{
+    QString s;
+    s = "Error SerialPort: ";
+    s += msg;
+    qDebug( s.toStdString().c_str() );
 }
 
 void LagTest::generateReport()
@@ -260,10 +276,18 @@ int LagTest::programArduino(QString avrDudePath, QString pathToFirmware, QString
 
     QProcess process;
     int ret = process.execute (avrDudePath, param.split(" "));
-
     QByteArray out = process.readAllStandardOutput();
     qDebug("Output %s" ,  out.data() );
     qDebug("Exit code %d", process.exitCode() );
+
+    // Store this settings for the normal program execution
+    QSettings* settings = new QSettings("lagtest.ini", QSettings::IniFormat);
+    QDir dir;
+    settings->setValue("Adruino/Port", port );
+    settings->setValue("Adruino/avrDudePath", dir.relativeFilePath( avrDudePath ) );
+    settings->setValue("Adruino/firmwarePath", dir.relativeFilePath( pathToFirmware ) );
+    settings->sync();
+    delete(settings);
 
     return process.exitCode();
 }

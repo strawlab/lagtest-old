@@ -14,9 +14,14 @@ class SerialPortHandler : public QObject
 public:
     explicit SerialPortHandler(QString port, int requestPeriod, TimeModel* tm, RingBuffer<clockPair>* clock_storage, RingBuffer<adcMeasurement>* adc_storage);    
 
+signals:
+    void sendDebugMsg(QString msg);
+    void sendErrorMsg(QString msg);
+
 public slots:
     void onThreadQuit();
     void start();
+
 
 private:
     QTimer* timer;
@@ -57,6 +62,8 @@ public:
 
 signals:
     void finished();
+    void sendDebugMsg(QString msg);
+    void sendErrorMsg(QString msg);
 
 public slots:
     void startCommunication();
