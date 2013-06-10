@@ -112,13 +112,13 @@ QMenuBar* Window::createMenu()
     menuBar->addMenu(fileMenu);
 
     QMenu* optionsMenu = new QMenu(tr("&Options"), this);
-    QAction* flashAction = optionsMenu->addAction(tr("&Flash Adruino"));
-    QAction* plotAction = optionsMenu->addAction(tr("&show graph"));
-    QAction* showLogAction = optionsMenu->addAction(tr("&showLogs"));
+    QAction* flashAction = optionsMenu->addAction(tr("Fl&ash Adruino"));
+    QAction* plotAction = optionsMenu->addAction(tr("Show &graph"));
+    QAction* showLogAction = optionsMenu->addAction(tr("Show &Logs"));
     menuBar->addMenu(optionsMenu);
 
     QMenu* helpMenu = new QMenu(tr("&Help"), this);
-    QAction* helpPageAction = helpMenu->addAction(tr("&Goto Introduction Page"));
+    QAction* helpPageAction = helpMenu->addAction(tr("Goto &Introduction Page"));
     QAction* aboutAction = helpMenu->addAction(tr("&About"));
     menuBar->addMenu(helpMenu);
 
@@ -128,6 +128,7 @@ QMenuBar* Window::createMenu()
     connect(helpPageAction, SIGNAL(triggered()), this, SLOT(recvOpenHelpPage()));
     connect(plotAction, SIGNAL(triggered()), this, SLOT(rcvTogglePlot()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT( rcvShowAbout()) );
+    connect(showLogAction, SIGNAL(triggered()), this, SIGNAL(showLogWindow()));
 
     return menuBar;
 }
@@ -135,7 +136,7 @@ QMenuBar* Window::createMenu()
 
 void Window::createPlots()
 {
-/*
+
     qDebug("Preparing plotting");
     this->xData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize );
     this->yData = (double*) malloc(sizeof(double) * LatencyModel::measurementWindowSize);
@@ -177,7 +178,7 @@ void Window::createPlots()
         c.setAlpha( 100 );
         colorObj.push_back( c );
     }
-    //qDebug("nColors %d", nColors);
+    qDebug("nColors %d", nColors);
 
     QPen p;
 
@@ -231,7 +232,8 @@ void Window::createPlots()
         this->plot->hide();
     }
     showPlot = !showPlot;
-*/
+
+    qDebug("Preparing plots done ...");
 }
 
 

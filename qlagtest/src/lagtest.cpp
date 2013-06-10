@@ -29,25 +29,9 @@
 #include <QAbstractButton>
 #include <QFile>
 
-//extern QPlainTextEdit* logWindow;
-//void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
-
-//QPlainTextEdit* logWindow;
-//void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-//{
-//    //printf("%s" , msg.toStdString().c_str() );
-//    logWindow->appendPlainText( msg );
-//    //qDebug("Vamosss %s", msg.toStdString().c_str());
-//}
-
 LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
 {
-
-//    logWindow = new QPlainTextEdit();
-//    //logWindow->setCenterOnScroll(true);
-//    logWindow->setReadOnly(true);
-//    logWindow->show();
-//    qInstallMessageHandler(myMessageOutput);
+    this->setupLogWindow();
 
     this->doNewVersionCheck();
 
@@ -74,6 +58,7 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
     QObject::connect( w, SIGNAL(startMeassurement()), lm, SLOT(start()) );
     QObject::connect( w, SIGNAL(generateReport()), this, SLOT( generateReport() ) );
     QObject::connect( w, SIGNAL(flashAdruino()), this, SLOT( recvFlashAdruino() ) );
+    QObject::connect( w, SIGNAL(showLogWindow()), this, SLOT( recvShowLogWindow() ) );
 
     //QObject::connect( &w, &Window::flashAdruino, getAdruinoPort );
 
@@ -89,6 +74,28 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
 
 LagTest::~LagTest()
 {
+}
+
+QPlainTextEdit* logWindow;
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    logWindow->appendPlainText( msg );
+}
+
+void LagTest::setupLogWindow()
+{
+    logWindow = new QPlainTextEdit(0);
+    logWindow->setWindowTitle( "Log window ");
+    logWindow->setCenterOnScroll(true);
+    logWindow->setReadOnly(true);
+    logWindow->resize( 700 , 500 );
+    logWindow->hide();
+    qInstallMessageHandler( myMessageOutput );
+}
+
+void LagTest::recvShowLogWindow()
+{
+    logWindow->show();
 }
 
 void LagTest::generateReport()

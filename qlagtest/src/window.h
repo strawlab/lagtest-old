@@ -96,6 +96,7 @@ signals:
     void doReset();
     void flashAdruino();
     void generateReport();
+    void showLogWindow();
 
 public slots:
     void receiveUnstableLatency();

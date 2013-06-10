@@ -25,6 +25,7 @@ public slots:
     void recvVersionCheckFinished(QNetworkReply*reply);
     void generateReport();
     void recvFlashAdruino();
+    void recvShowLogWindow();
 
 public:
     static std::vector<QString> discoverComPorts();
@@ -35,6 +36,7 @@ protected:
     bool loadSettings();
     bool testPort(QString port);
     void doNewVersionCheck();
+    void setupLogWindow();
 
     QSettings* settings;
     LatencyModel* lm;

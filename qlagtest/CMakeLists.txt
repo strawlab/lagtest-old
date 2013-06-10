@@ -6,6 +6,7 @@ PROJECT(lagtest)
 # This needs to be set to release in order to use qwt library
 # If debug, qwtd has to be linked
 SET(CMAKE_BUILD_TYPE Release )
+#SET(CMAKE_BUILD_TYPE Debug )
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     message( "=== Detected Windows build ===")

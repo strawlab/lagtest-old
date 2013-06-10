@@ -40,9 +40,8 @@ void SerialPortHandler::createSerialPortCommunicator()
 
 void SerialPortHandler::onThreadQuit()
 {
-    qDebug("Main: Serial Communicator finished ..." );
-
-    qDebug("Will restart serial port Communicator!");
+    //qDebug("Main: Serial Communicator finished ..." );
+    //qDebug("Will restart serial port Communicator!");
 
     try
     {
@@ -153,7 +152,7 @@ void LagTestSerialPortComm::startCommunication()
     }
 
     nBuffer = 0;  //Number of unread bytes in the buffer
-    qDebug("Adruino Frame length = %lld bytes", frameLength );
+    //qDebug("Adruino Frame length = %lld bytes", frameLength );
 
     while(1)
     {
@@ -251,7 +250,7 @@ void LagTestSerialPortComm::startCommunication()
                     }
                 }
                 default:{
-                    qDebug( "Unknown msg from adruino: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
+                    //qDebug( "Unknown msg from adruino: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
                 }
             }
         } else {
@@ -281,7 +280,7 @@ bool LagTestSerialPortComm::readFrame(uint8_t* buffer, timed_sample_t* frame)
         frame->checksum = *(buffer+8);
         return true;
     } else{
-        qDebug("Invalid Frame (%u) (%u) (%u;%u;%u;%u) (%u;%u;) (%u) | CS %u", *(buffer+0), *(buffer+1), *(buffer+2), *(buffer+3), *(buffer+4), *(buffer+5), *(buffer+6), *(buffer+7), *(buffer+8) , cs);
+        //qDebug("Invalid Frame (%u) (%u) (%u;%u;%u;%u) (%u;%u;) (%u) | CS %u", *(buffer+0), *(buffer+1), *(buffer+2), *(buffer+3), *(buffer+4), *(buffer+5), *(buffer+6), *(buffer+7), *(buffer+8) , cs);
         return false;
     }
 }
