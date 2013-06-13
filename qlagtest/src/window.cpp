@@ -49,13 +49,10 @@
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_legend.h>
-//#include <qwt_point_data.h>
 #include <QMenuBar>
 
 #include <QCoreApplication>
 #include "latencymodel.h"
-
-
 
 #include <QDesktopServices>
 #include <QMessageBox>
@@ -112,6 +109,7 @@ QMenuBar* Window::createMenu()
     menuBar->addMenu(fileMenu);
 
     QMenu* optionsMenu = new QMenu(tr("&Options"), this);
+    QAction* selectPortAction = optionsMenu->addAction(tr("Select &Port"));
     QAction* flashAction = optionsMenu->addAction(tr("Fl&ash Adruino"));
     QAction* plotAction = optionsMenu->addAction(tr("Show &graph"));
     QAction* showLogAction = optionsMenu->addAction(tr("Show &Logs"));
@@ -129,6 +127,8 @@ QMenuBar* Window::createMenu()
     connect(plotAction, SIGNAL(triggered()), this, SLOT(rcvTogglePlot()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT( rcvShowAbout()) );
     connect(showLogAction, SIGNAL(triggered()), this, SIGNAL(showLogWindow()));
+    connect(selectPortAction, SIGNAL(triggered()), this, SIGNAL(selectPort()));
+
 
     return menuBar;
 }
@@ -350,7 +350,7 @@ void Window::receiveLatencyUpdate(LatencyModel* lm)
 
 
 void Window::recvOpenHelpPage(){
-    QDesktopServices::openUrl(QUrl("http://lagtest.org", QUrl::TolerantMode));
+    QDesktopServices::openUrl(QUrl("http://lagtest.org/app-help", QUrl::TolerantMode));
 }
 
 void Window::quit(){

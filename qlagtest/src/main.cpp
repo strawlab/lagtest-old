@@ -61,18 +61,20 @@
 #include <QSettings>
 #include <QPlainTextEdit>
 
-#include "lagtest.h"
+#include <QStyleFactory>
 
+#include "lagtest.h"
 
 int main(int argc, char **argv)
 {
-    QApplication app(argc, argv); 
-    QCoreApplication::setApplicationVersion( "0.8" );
+    QApplication app(argc, argv);
+    QCoreApplication::setApplicationVersion( "0.8.0" );
+    app.setStyle( QStyleFactory::create("windowsxp") ); //Do this to prevent bug: https://bugreports.qt-project.org/browse/QTBUG-29720
 
 //#define FLASH
 #ifdef FLASH
     LagTest::programArduino( QString::fromLocal8Bit(argv[1]), QString::fromLocal8Bit(argv[2]) );
-    exit(0);
+    //exit(0);
 #else
     //RingBuffer<char>::test();
     //return 1;

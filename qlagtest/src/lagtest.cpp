@@ -60,6 +60,7 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
     QObject::connect( w, SIGNAL(generateReport()), this, SLOT( generateReport() ) );
     QObject::connect( w, SIGNAL(flashAdruino()), this, SLOT( recvFlashAdruino() ) );
     QObject::connect( w, SIGNAL(showLogWindow()), this, SLOT( recvShowLogWindow() ) );
+    QObject::connect( w, SIGNAL(selectPort()), this, SLOT( recvSelectPort() ) );
 
     //QObject::connect( &w, &Window::flashAdruino, getAdruinoPort );
 
@@ -70,6 +71,10 @@ LagTest::LagTest(int clockSyncPeriod, int latencyUpdate, int screenFlipPeriod)
     QObject::connect( lm, SIGNAL(signalUpdate(LatencyModel*)),  w, SLOT(receiveLatencyUpdate(LatencyModel*)) );
     QObject::connect( lm, SIGNAL(signalNewMeassurementWindow(uint8_t*,double*,double*,flip_type)), w, SLOT(receiveNewMeassurementWindow(uint8_t*,double*,double*,flip_type)) );
 
+
+    QObject::connect( serial, SIGNAL(sendDebugMsg(QString)),    this, SLOT(recvSerialMsg(QString)) );
+    QObject::connect( serial, SIGNAL(sendErrorMsg(QString)),    this, SLOT(recvSerialError(QString)) );
+
     w->show();
 }
 
@@ -77,10 +82,17 @@ LagTest::~LagTest()
 {
 }
 
-QPlainTextEdit* logWindow;
+QPlainTextEdit* logWindow = NULL;
+
+
+
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-    logWindow->appendPlainText( msg );
+{    
+    if( logWindow !=  NULL) {
+        logWindow->appendPlainText( msg );
+    } else {
+        fprintf(stderr, "%s" , msg.toStdString().c_str() );
+    }
 }
 
 void LagTest::setupLogWindow()
@@ -153,6 +165,15 @@ void LagTest::recvFlashAdruino()
     programArduino( QCoreApplication::applicationDirPath().append("/tools/avrdude.exe"), QCoreApplication::applicationDirPath().append("/firmware.hex"), this->settings->value("Adruino/Port").toString());
 }
 
+void LagTest::recvSelectPort()
+{
+    QString port = makeUserSelectPort();
+    QSettings* settings = new QSettings("lagtest.ini", QSettings::IniFormat);
+    settings->setValue("Adruino/Port", port );
+    settings->sync();
+    delete(settings);
+}
+
 void LagTest::doNewVersionCheck()
 {    
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
@@ -178,9 +199,15 @@ void LagTest::recvVersionCheckFinished(QNetworkReply *reply)
         QString ch2 = changes.at(1).toString();
         qDebug("version = %s , changes [%s , %s]" , version.toStdString().c_str() , ch1.toStdString().c_str() , ch2.toStdString().c_str() );
 
-        double verNew = version.toDouble();
-        double verCur = QCoreApplication::applicationVersion().toDouble();
+        double verNew, verCur;
+        int major,minor,bfx;
+        sscanf( version.toStdString().c_str() , "%d.%d.%d." , &major, &minor, &bfx);
+        verNew = major + (minor/10.0) + (bfx / 100);
 
+        sscanf( QCoreApplication::applicationVersion().toStdString().c_str() , "%d.%d.%d." , &major, &minor, &bfx);
+        verCur = major + (minor/10.0) + (bfx / 100);
+
+        //qDebug("Version check: cur [%f] , new [%f]" , verCur, verNew);
         if( verNew > verCur )
         {
             QMessageBox *box = new QMessageBox(QMessageBox::NoIcon, "Version update", tr("New version available! %1 -> %2\n%3\n%4").arg(QCoreApplication::applicationVersion()).arg(version).arg(ch1).arg(ch2) \
@@ -193,7 +220,7 @@ void LagTest::recvVersionCheckFinished(QNetworkReply *reply)
         }
 
     } else {
-        qDebug( "Version check failed! %s\n " , reply->errorString().toStdString().c_str() );
+        qDebug( "Lagtest version check failed! %s\n " , reply->errorString().toStdString().c_str() );
     }
 
     reply->deleteLater();
@@ -207,7 +234,7 @@ std::vector<QString> LagTest::discoverComPorts()
 
     qDebug("Discovering Serial Ports ...");
 
-    for(int i = 5; i < 16; i++){    //Only search for ports between COM6-COM16
+    for(int i = 1; i < 16; i++){    //Only search for ports between COM6-COM16
         if( !RS232_OpenComport(i, 9600) ){
             ports.push_back(i);
             RS232_CloseComport( i );
@@ -233,7 +260,7 @@ void LagTest::receiveFlashAdruino()
 }
 
 QString LagTest::makeUserSelectPort()
-{
+{    
     //Create a simple QWidget that contains a dropdown list of all serial ports
     QWidget mainWindow;
     QComboBox combo;
@@ -241,6 +268,7 @@ QString LagTest::makeUserSelectPort()
     QEventLoop loop;
     QLabel PortSelectMsg("Select the port adruino is connected to");
 
+    mainWindow.setWindowFlags(Qt::WindowTitleHint );
     PortSelectMsg.setAlignment(Qt::AlignHCenter);
     layout.addWidget( &PortSelectMsg, 0 );
     layout.addWidget( &combo, 0 );
@@ -274,11 +302,14 @@ int LagTest::programArduino(QString avrDudePath, QString pathToFirmware, QString
     QString param(QString::fromLocal8Bit(buffer));
     qDebug("Calling %s with %s" , avrDudePath.toStdString().c_str(), param.toStdString().c_str() );
 
-    QProcess process;
-    int ret = process.execute (avrDudePath, param.split(" "));
-    QByteArray out = process.readAllStandardOutput();
-    qDebug("Output %s" ,  out.data() );
-    qDebug("Exit code %d", process.exitCode() );
+    QProcess process;    
+    process.execute (avrDudePath, param.split(" "));
+
+    if( process.exitCode() == 0){
+        qDebug("Flashing Arduino was successful!");
+    } else {
+        qCritical("Flashing Arduino failed! Error code %d" , process.exitCode());
+    }
 
     // Store this settings for the normal program execution
     QSettings* settings = new QSettings("lagtest.ini", QSettings::IniFormat);

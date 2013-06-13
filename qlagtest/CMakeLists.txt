@@ -28,6 +28,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # qwt plotting library
     set( QWT_INC_PATH "C:/Projects/qwt/src")
     find_library( QWT_LIBRARY NAMES qwt PATHS "C:/Projects/qwt/lib" )
+    #add_definitions( -DWINVER=0x0501 )
 
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
@@ -101,3 +102,7 @@ qt5_use_modules(lagtest Widgets OpenGL Network)
 #set_target_properties( IPPImage_Test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}/Test )
 #add_test(IPPImage bin/Test/IPPImage_Test)
 #message("Run test with \n    ctest . --output-on-failure")
+
+
+
+

@@ -66,7 +66,7 @@ void SerialPortHandler::onThreadQuit()
 void SerialPortHandler::start()
 {
     //qDebug("Starting serial port reader thread ...");
-    this->sendDebugMsg("Will restart serial port Communicator!");
+    this->sendDebugMsg("Will start serial port Communicator!");
 
     if(this->thread)
         this->thread->start();
@@ -116,29 +116,27 @@ int LagTestSerialPortComm::getPortIdx(QString portName)
 }
 
 void LagTestSerialPortComm::initSerialPort()
-{
-    //qDebug("Opening Com port %d", portN+1);
+{    
     QString s;
-    this->sendDebugMsg(s.sprintf("Opening Com port %d", portN+1));
+    this->sendDebugMsg(s.sprintf("Opening Com port %d ... ", portN+1));
     if(RS232_OpenComport(portN, this->bautRate))
-    {
-        //qCritical("Can not open comport.");
-        this->sendErrorMsg("Can not open comport.");
+    {        
+        this->sendErrorMsg("Can not open Serial port.");
         throw std::exception();
     }    
 }
 
 int LagTestSerialPortComm::write(unsigned char* data, int size){
-    return RS232_SendBuf(10, data, size);
+    return RS232_SendBuf(this->portN, data, size);
 }
 
 int  LagTestSerialPortComm::read(unsigned char* buffer, int max_size){
-    return RS232_PollComport(10, buffer, max_size);
+    return RS232_PollComport(this->portN, buffer, max_size);
 }
 
 void LagTestSerialPortComm::sendClockRequest()
 {
-    //qDebug("Received signal for clock request");
+    //sendDebugMsg("Received signal to send Time Request ...");
     this->sendRequest = true;
 }
 
@@ -158,11 +156,11 @@ void LagTestSerialPortComm::startCommunication()
     int nBytes;
     double sendTime, now, d1;
     unsigned char b[2];
+    int nEmptyReads;
 
     try{
         this->initSerialPort();
-    } catch( ... ) {
-        //qCritical("Opening Serial Port failed!");
+    } catch( ... ) {        
         this->sendErrorMsg("Opening Serial Port failed!");
         emit finished();
     }
@@ -171,7 +169,7 @@ void LagTestSerialPortComm::startCommunication()
     //qDebug("Adruino Frame length = %lld bytes", frameLength );
 
     while(1)
-    {
+    {        
         QCoreApplication::processEvents();  //If this is not called, no signals can be received by this thread
 
         //If ordered, send an request to the adruino to return its current clock value
@@ -180,101 +178,108 @@ void LagTestSerialPortComm::startCommunication()
             b[0] = 'P';
             b[1] = this->tR;
 
-            //qDebug("Sending request for Adruino Clock time ...");
+            //sendDebugMsg("Sending request for Adruino Clock time ...");
             this->write(b, 2);
 
             this->timeRequests[tR] = this->tm->getCurrentTime();
             tR = (tR+1)%this->ntimeRequests;
 
-            this->sendRequest = false;
+            this->sendRequest = false;                       
         }
 
+        nEmptyReads = 0;
         //Read from the serial port at least one complete message
         while( nBuffer < frameLength )
-        {
-            nBytes = this->read(&(buffer[nBuffer]), (bufferSize-nBuffer) );
+        {            
+            nBytes = this->read(&(buffer[nBuffer]), (bufferSize-nBuffer) );            
             nBuffer += nBytes;
             if(nBytes == 0){
-                QThread::msleep ( 10 ) ;
+                nEmptyReads ++;
+                QThread::msleep ( 10 ) ;                
             }
 
+            if(nEmptyReads > 100){
+                this->sendErrorMsg("Not getting any data from the arduino!");
+                break;
+            }
         }
         //qDebug("Buffer at %d", nBuffer);
         assert ( nBuffer <= bufferSize );
 
-        //qDebug("Read %d bytes from serial", nBuffer);
-
-        //Try to read a new frame from the beginning of the buffer
-        //If the frame checksum fails, do a frame shift and try again
-        validFrame = false;
-        i = 0;
-        //do frame shifts untill there cannot be a full frame in the buffer
-        while( !validFrame && (i+frameLength) <= nBuffer )
+        if( nBuffer >= frameLength )
         {
-            validFrame = readFrame(&buffer[i], &frame);
-
-            if( validFrame ) {
-               now = this->tm->getCurrentTime();
-               i += frameLength;
-            } else {
-                i++; //Shift the frame by one
-            }
-        }
-        // i ... number of bytes read/garbage in buffer
-
-        //Move read/garbage data to the beginning of the buffer
-        assert ( i <= nBuffer );
-        for(int j = 0; j < (nBuffer-i) ; j++){
-            buffer[j] = buffer[j+i];
-        }
-        nBuffer -= i;
-        assert( nBuffer >= 0 );
-
-        if( validFrame )
-        {
-            //qDebug( " Frame: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
-
-            switch(frame.cmd)
+            //Try to read a new frame from the beginning of the buffer
+            //If the frame checksum fails, do a frame shift and try again
+            validFrame = false;
+            i = 0;
+            //do frame shifts untill there cannot be a full frame in the buffer
+            while( !validFrame && (i+frameLength) <= nBuffer )
             {
-                case 'H'://ADC measurement
-                {
-                    adcM.adc = frame.value;
-                    adcM.adruino_epoch = frame.epoch;
-                    adcM.adruino_ticks = frame.ticks;
-                    this->adc_storage->put( &adcM );
-                    //qDebug("Received a adc measurement");
-                    break;
+                validFrame = readFrame(&buffer[i], &frame);
+
+                if( validFrame ) {
+                   now = this->tm->getCurrentTime();
+                   i += frameLength;
+                } else {
+                    i++; //Shift the frame by one
                 }
-                case 'P': //Clock response
+            }
+            // i ... number of bytes read/garbage in buffer
+
+            //Move read/garbage data to the beginning of the buffer
+            assert ( i <= nBuffer );
+            for(int j = 0; j < (nBuffer-i) ; j++){
+                buffer[j] = buffer[j+i];
+            }
+            nBuffer -= i;
+            assert( nBuffer >= 0 );
+
+            if( validFrame )
+            {
+                //qDebug( " Frame: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
+
+                switch(frame.cmd)
                 {
-                //Get the time the request was send; assume the latency of receiving the reply is symetrical; store the time on this pc and the adruino clock
-                    if( frame.value > this->ntimeRequests ){
-                        //qCritical("Adruino returns invalid reference id!");
-                        this->sendErrorMsg("Adruino returns invalid reference id!");
-                    } else {
-                        sendTime = this->timeRequests[ frame.value ];
-                        d1 = (now - sendTime)/2.0;
-                        if( d1 <= 0){
-                            //qCritical("somethign strange happens here ... %g", d1 );
-                            QString s;
-                            this->sendErrorMsg(s.sprintf("somethign strange happens here ... %g", d1 ));
-                            d1 = 0;
-                        }
-                        cp.local = sendTime + d1;
-                        cp.adruino_epoch = frame.epoch;
-                        cp.adruino_ticks = frame.ticks;
-                        this->clock_storage->put( &cp );
-                        //qDebug("Received a adruino clock msg for request %d from %g", frame.value, cp.local );
+                    case 'H'://ADC measurement
+                    {
+                        adcM.adc = frame.value;
+                        adcM.adruino_epoch = frame.epoch;
+                        adcM.adruino_ticks = frame.ticks;
+                        this->adc_storage->put( &adcM );
+                        //qDebug("Received a adc measurement");
                         break;
                     }
+                    case 'P': //Clock response
+                    {
+                    //Get the time the request was send; assume the latency of receiving the reply is symetrical; store the time on this pc and the adruino clock
+                        if( frame.value > this->ntimeRequests ){
+                            //qCritical("Adruino returns invalid reference id!");
+                            this->sendErrorMsg("Adruino returns invalid reference id!");
+                        } else {
+                            sendTime = this->timeRequests[ frame.value ];
+                            d1 = (now - sendTime)/2.0;
+                            if( d1 <= 0){
+                                //qCritical("somethign strange happens here ... %g", d1 );
+                                QString s;
+                                this->sendErrorMsg(s.sprintf("somethign strange happens here ... %g", d1 ));
+                                d1 = 0;
+                            }
+                            cp.local = sendTime + d1;
+                            cp.adruino_epoch = frame.epoch;
+                            cp.adruino_ticks = frame.ticks;
+                            this->clock_storage->put( &cp );
+                            //qDebug("Received a adruino clock msg for request %d from %g", frame.value, cp.local );
+                            break;
+                        }
+                    }
+                    default:{
+                        //qDebug( "Unknown msg from adruino: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
+                    }
                 }
-                default:{
-                    //qDebug( "Unknown msg from adruino: %c;%d;%d;%d", frame.cmd, frame.value, frame.epoch, frame.ticks );
-                }
+            } else {
+                //qDebug( " Invalid Frame ... ");
+                this->sendErrorMsg("Invalid Frame ... ");
             }
-        } else {
-            //qDebug( " Invalid Frame ... ");
-            this->sendErrorMsg("Invalid Frame ... ");
         }
     }
 

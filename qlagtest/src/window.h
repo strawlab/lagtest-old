@@ -97,6 +97,7 @@ signals:
     void flashAdruino();
     void generateReport();
     void showLogWindow();
+    void selectPort();
 
 public slots:
     void receiveUnstableLatency();

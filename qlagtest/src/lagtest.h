@@ -12,6 +12,7 @@ class QNetworkReply;
 class LatencyModel;
 class SerialPortHandler;
 class Window;
+class QPlainTextEdit;
 
 class LagTest : public QObject
 {    
@@ -26,14 +27,15 @@ public slots:
     void generateReport();
     void recvFlashAdruino();
     void recvShowLogWindow();
+    void recvSelectPort();
 
     void recvSerialMsg(QString msg);
     void recvSerialError(QString msg);
 
 public:
-    static std::vector<QString> discoverComPorts();
-    static int programArduino(QString avrDudePath, QString pathToFirmware, QString port=QString() );
-    static QString makeUserSelectPort();
+    std::vector<QString> discoverComPorts();
+    int programArduino(QString avrDudePath, QString pathToFirmware, QString port=QString() );
+    QString makeUserSelectPort();
 
 protected:
     bool loadSettings();
